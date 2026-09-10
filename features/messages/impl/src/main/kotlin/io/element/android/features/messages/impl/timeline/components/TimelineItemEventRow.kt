@@ -49,9 +49,7 @@ import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
@@ -219,23 +217,13 @@ fun TimelineItemEventRow(
         inReplyToClick(inReplyToEventId)
     }
 
-    val canReply = timelineRoomInfo.userHasPermissionToSendMessage && event.canBeRepliedTo
-    val accessibilityActions = rememberTimelineItemAccessibilityActions(
-        canReply = canReply,
-        onLongClick = onLongClick,
-        onSwipeToReply = onSwipeToReply,
-    )
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .semantics { customActions = accessibilityActions }
-    ) {
+    Column(modifier = modifier.fillMaxWidth()) {
         if (event.groupPosition.isNew()) {
             Spacer(modifier = Modifier.height(16.dp))
         } else {
             Spacer(modifier = Modifier.height(2.dp))
         }
+        val canReply = timelineRoomInfo.userHasPermissionToSendMessage && event.canBeRepliedTo
         if (canReply) {
             val state: SwipeableActionsState = rememberSwipeableActionsState()
             val offset = state.offset.floatValue
@@ -328,40 +316,6 @@ fun TimelineItemEventRow(
             onReadReceiptsClick = { onReadReceiptClick(event) },
             modifier = Modifier.padding(top = 4.dp)
         )
-    }
-}
-
-/**
- * Exposes the gestures of a timeline item — long press for the action list, swipe for a reply — as TalkBack actions, since neither gesture is reachable
- * with a screen reader enabled.
- */
-@Composable
-private fun rememberTimelineItemAccessibilityActions(
-    canReply: Boolean,
-    onLongClick: () -> Unit,
-    onSwipeToReply: () -> Unit,
-): List<CustomAccessibilityAction> {
-    val messageActionsLabel = stringResource(CommonStrings.common_message_actions)
-    val replyLabel = stringResource(CommonStrings.action_reply)
-    val latestOnLongClick by rememberUpdatedState(onLongClick)
-    val latestOnSwipeToReply by rememberUpdatedState(onSwipeToReply)
-    return remember(canReply, messageActionsLabel, replyLabel) {
-        buildList {
-            add(
-                CustomAccessibilityAction(messageActionsLabel) {
-                    latestOnLongClick()
-                    true
-                }
-            )
-            if (canReply) {
-                add(
-                    CustomAccessibilityAction(replyLabel) {
-                        latestOnSwipeToReply()
-                        true
-                    }
-                )
-            }
-        }
     }
 }
 
@@ -505,12 +459,17 @@ private fun TimelineItemEventRowContent(
                 event.senderId,
                 event.senderProfile,
                 event.senderAvatar,
+                event.isMine,
                 onUserDataClick,
                 Modifier
                     .constrainAs(sender) {
                         top.linkTo(parent.top)
-                        // Required for correct RTL layout
-                        start.linkTo(parent.start)
+                        if (event.isMine) {
+                            end.linkTo(parent.end)
+                        } else {
+                            // Required for correct RTL layout
+                            start.linkTo(parent.start)
+                        }
                     }
                     .padding(horizontal = 16.dp)
                     .zIndex(1f),
@@ -630,6 +589,7 @@ private fun MessageSenderInformation(
     senderId: UserId,
     senderProfile: ProfileDetails,
     senderAvatar: AvatarData,
+    isMine: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -640,16 +600,19 @@ private fun MessageSenderInformation(
             .clickable(onClick = onClick, enabled = true, interactionSource = remember { MutableInteractionSource() }, indication = null)
             .clearAndSetSemantics {
                 hideFromAccessibility()
-            }
+            },
+        horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start
     ) {
-        Avatar(
-            modifier = Modifier
-                .testTag(TestTags.timelineItemSenderAvatar)
-                .clip(CircleShape)
-                .clickable(onClick = onClick),
-            avatarData = senderAvatar,
-            avatarType = AvatarType.User,
-        )
+        if (!isMine) {
+            Avatar(
+                modifier = Modifier
+                    .testTag(TestTags.timelineItemSenderAvatar)
+                    .clip(CircleShape)
+                    .clickable(onClick = onClick),
+                avatarData = senderAvatar,
+                avatarType = AvatarType.User,
+            )
+        }
         SenderName(
             modifier = Modifier
                 .testTag(TestTags.timelineItemSenderName)
@@ -660,6 +623,16 @@ private fun MessageSenderInformation(
             senderProfile = senderProfile,
             senderNameMode = SenderNameMode.Timeline(avatarColors.foreground),
         )
+        if (isMine) {
+            Avatar(
+                modifier = Modifier
+                    .testTag(TestTags.timelineItemSenderAvatar)
+                    .clip(CircleShape)
+                    .clickable(onClick = onClick),
+                avatarData = senderAvatar,
+                avatarType = AvatarType.User,
+            )
+        }
     }
 }
 
