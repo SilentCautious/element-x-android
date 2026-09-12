@@ -14,11 +14,11 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
 @Immutable
@@ -63,14 +63,14 @@ fun parseUserStickerPack(raw: String?): UserStickerPack {
     val empty = UserStickerPack(displayName = null, stickers = persistentListOf())
     if (raw.isNullOrBlank()) return empty
     val root = runCatching { Json.parseToJsonElement(raw).jsonObject }.getOrNull() ?: return empty
-    val displayName = (root["pack"] as? JsonObject)?.get("display_name")?.jsonPrimitive?.content
+    val displayName = (root["pack"] as? JsonObject)?.get("display_name")?.let { it as? JsonPrimitive }?.content
     val stickers = (root["images"] as? JsonObject)?.entries?.mapNotNull { (shortcode, value) ->
         if (value !is JsonObject) return@mapNotNull null
-        val url = value["url"]?.jsonPrimitive?.content ?: return@mapNotNull null
+        val url = (value["url"] as? JsonPrimitive)?.content ?: return@mapNotNull null
         StickerImage(
             shortcode = shortcode,
             url = url,
-            body = value["body"]?.jsonPrimitive?.content,
+            body = (value["body"] as? JsonPrimitive)?.content,
             info = (value["info"] as? JsonObject)?.toImageInfo(),
         )
     }.orEmpty()
@@ -104,11 +104,11 @@ fun serializeUserStickerPack(pack: UserStickerPack): String = buildJsonObject {
 private fun JsonObject.toImageInfo(): ImageInfo = ImageInfo(
     height = getLong("h"),
     width = getLong("w"),
-    mimetype = get("mimetype")?.jsonPrimitive?.content,
+    mimetype = (get("mimetype") as? JsonPrimitive)?.content,
     size = getLong("size"),
     thumbnailInfo = null,
     thumbnailSource = null,
-    blurhash = get("blurhash")?.jsonPrimitive?.content,
+    blurhash = (get("blurhash") as? JsonPrimitive)?.content,
 )
 
-private fun JsonObject.getLong(key: String): Long? = get(key)?.jsonPrimitive?.content?.toLongOrNull()
+private fun JsonObject.getLong(key: String): Long? = (get(key) as? JsonPrimitive)?.content?.toLongOrNull()
