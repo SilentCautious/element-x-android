@@ -343,6 +343,7 @@ class MessagesNode(
                     )
                 },
                 onThreadsListClick = callback::navigateToThreadsList,
+                onSearchClick = {},
             )
             roomMemberModerationRenderer.Render(
                 state = state.roomMemberModerationState,

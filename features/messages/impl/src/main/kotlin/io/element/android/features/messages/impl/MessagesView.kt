@@ -114,6 +114,7 @@ import io.element.android.libraries.designsystem.text.toAnnotatedString
 import io.element.android.libraries.designsystem.text.toDp
 import io.element.android.libraries.designsystem.theme.components.BottomSheetDragHandle
 import io.element.android.libraries.designsystem.theme.components.Icon
+import io.element.android.libraries.designsystem.theme.components.IconButton
 import io.element.android.libraries.designsystem.theme.components.Scaffold
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.utils.HideKeyboardWhenDisposed
@@ -154,6 +155,7 @@ fun MessagesView(
     onJoinCallClick: (isAudioCall: Boolean) -> Unit,
     onViewAllPinnedMessagesClick: () -> Unit,
     onThreadsListClick: () -> Unit,
+    onSearchClick: () -> Unit,
     knockRequestsBannerView: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     forceJumpToBottomVisibility: Boolean = false,
@@ -261,7 +263,8 @@ fun MessagesView(
                                     displayThreads = state.timelineState.timelineMode !is Timeline.Mode.Thread && state.threads.hasThreads,
                                     roomCallState = state.roomCallState,
                                     onJoinCallClick = onJoinCallClick,
-                                    onThreadsListClick = onThreadsListClick
+                                    onThreadsListClick = onThreadsListClick,
+                                    onSearchClick = onSearchClick,
                                 )
                             }
                         )
@@ -468,6 +471,7 @@ internal fun RowScope.MessagesMenuActions(
     roomCallState: RoomCallState,
     onJoinCallClick: (isAudioCall: Boolean) -> Unit,
     onThreadsListClick: () -> Unit,
+    onSearchClick: () -> Unit,
 ) {
     if (displayThreads) {
         Icon(
@@ -477,6 +481,16 @@ internal fun RowScope.MessagesMenuActions(
         )
         Spacer(Modifier.width(8.dp))
     }
+    IconButton(
+        onClick = onSearchClick,
+        enabled = true,
+    ) {
+        Icon(
+            imageVector = CompoundIcons.Search(),
+            contentDescription = stringResource(CommonStrings.action_search),
+        )
+    }
+    Spacer(Modifier.width(8.dp))
     CallMenuItem(
         roomCallState = roomCallState,
         onJoinCallClick = onJoinCallClick,
@@ -731,6 +745,7 @@ internal fun MessagesViewPreview(@PreviewParameter(MessagesStatePreviewParam::cl
         knockRequestsBannerView = {},
         customReactionBottomSheet = {},
         onThreadsListClick = {},
+        onSearchClick = {},
     )
 }
 
@@ -786,6 +801,7 @@ internal fun MessagesViewA11yPreview() = ElementPreview {
         onJoinCallClick = {},
         onViewAllPinnedMessagesClick = {},
         onThreadsListClick = {},
+        onSearchClick = {},
         forceJumpToBottomVisibility = true,
         knockRequestsBannerView = {},
         customReactionBottomSheet = {},

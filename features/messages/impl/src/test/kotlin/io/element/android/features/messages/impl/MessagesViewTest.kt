@@ -736,6 +736,18 @@ class MessagesViewTest : RobolectricTest() {
     }
 
     @Test
+    fun `clicking on search button calls the expected function`() = runAndroidComposeUiTest {
+        val state = aMessagesState()
+        val onSearchClicked = lambdaRecorder<Unit> {}
+        setMessagesView(
+            state = state,
+            onSearchClick = onSearchClicked,
+        )
+        onNodeWithContentDescription("Search").performClick()
+        onSearchClicked.assertions().isCalledOnce()
+    }
+
+    @Test
     fun `no banner shown when there is no successor room`() = runAndroidComposeUiTest {
         val eventsRecorder = EventsRecorder<MessagesEvent>(expectEvents = false)
         val state = aMessagesState(
@@ -796,9 +808,11 @@ private fun AndroidComposeUiTest<ComponentActivity>.setMessagesView(
     onLinkClick: (String, Boolean) -> Unit = EnsureNeverCalledWithTwoParams(),
     onSendLocationClick: () -> Unit = EnsureNeverCalled(),
     onCreatePollClick: () -> Unit = EnsureNeverCalled(),
+    onSendStickerClick: () -> Unit = EnsureNeverCalled(),
     onJoinCallClick: (Boolean) -> Unit = EnsureNeverCalledWithParam(),
     onViewAllPinnedMessagesClick: () -> Unit = EnsureNeverCalled(),
     onThreadsListClicked: () -> Unit = EnsureNeverCalled(),
+    onSearchClick: () -> Unit = EnsureNeverCalled(),
 ) {
     val emojiPickerRenderer = DefaultEmojiPickerRenderer()
     setSafeContent {
@@ -814,6 +828,7 @@ private fun AndroidComposeUiTest<ComponentActivity>.setMessagesView(
                 onLinkClick = onLinkClick,
                 onSendLocationClick = onSendLocationClick,
                 onCreatePollClick = onCreatePollClick,
+                onSendStickerClick = onSendStickerClick,
                 onJoinCallClick = onJoinCallClick,
                 onViewAllPinnedMessagesClick = onViewAllPinnedMessagesClick,
                 knockRequestsBannerView = {},
@@ -827,6 +842,7 @@ private fun AndroidComposeUiTest<ComponentActivity>.setMessagesView(
                     )
                 },
                 onThreadsListClick = onThreadsListClicked,
+                onSearchClick = onSearchClick,
             )
         }
     }
