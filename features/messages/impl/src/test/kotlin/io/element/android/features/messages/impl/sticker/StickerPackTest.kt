@@ -28,10 +28,12 @@ class StickerPackTest {
 
     @Test
     fun `parse - null or blank account data yields empty pack`() {
-        val empty = UserStickerPack(displayName = null, stickers = persistentListOf())
-        assertThat(parseUserStickerPack(null)).isEqualTo(empty)
-        assertThat(parseUserStickerPack("")).isEqualTo(empty)
-        assertThat(parseUserStickerPack("  ")).isEqualTo(empty)
+        assertThat(parseUserStickerPack(null))
+            .isEqualTo(UserStickerPack(displayName = null, stickers = persistentListOf<StickerImage>()))
+        assertThat(parseUserStickerPack(""))
+            .isEqualTo(UserStickerPack(displayName = null, stickers = persistentListOf<StickerImage>()))
+        assertThat(parseUserStickerPack("  "))
+            .isEqualTo(UserStickerPack(displayName = null, stickers = persistentListOf<StickerImage>()))
     }
 
     @Test

@@ -11,7 +11,7 @@ import androidx.compose.runtime.Immutable
 import io.element.android.libraries.matrix.api.media.ImageInfo
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -43,7 +43,7 @@ data class UserStickerPack(
         }
         return UserStickerPack(
             displayName = displayName,
-            stickers = (stickers + StickerImage(shortcode = candidate, url = url, body = body, info = info)).toPersistentList(),
+            stickers = (stickers + StickerImage(shortcode = candidate, url = url, body = body, info = info)).toImmutableList(),
         )
     }
 }
@@ -74,7 +74,7 @@ fun parseUserStickerPack(raw: String?): UserStickerPack {
             info = (value["info"] as? JsonObject)?.toImageInfo(),
         )
     }.orEmpty()
-    return UserStickerPack(displayName = displayName, stickers = stickers.toPersistentList())
+    return UserStickerPack(displayName = displayName, stickers = stickers.toImmutableList())
 }
 
 fun serializeUserStickerPack(pack: UserStickerPack): String = buildJsonObject {

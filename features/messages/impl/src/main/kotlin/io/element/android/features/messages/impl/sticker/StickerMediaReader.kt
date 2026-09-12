@@ -12,7 +12,6 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
-import dev.zacsweers.metro.Inject
 import io.element.android.libraries.androidutils.file.getFileName
 import io.element.android.libraries.androidutils.file.getMimeType
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
@@ -27,7 +26,6 @@ interface StickerMediaReader {
 }
 
 @ContributesBinding(AppScope::class)
-@Inject
 class DefaultStickerMediaReader(
     private val coroutineDispatchers: CoroutineDispatchers,
     @ApplicationContext private val context: Context,
