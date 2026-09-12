@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 Element Creations Ltd.
+  ~
+  ~ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+  ~ Please see LICENSE files in the repository root for full details.
+  -->
+
+<resources>
+    <string name="screen_room_attachment_source_sticker">Sticker</string>
+    <string name="screen_sticker_picker_title">Stickers</string>
+    <string name="screen_sticker_picker_import">Import</string>
+    <string name="screen_sticker_picker_empty_title">No stickers yet</string>
+    <string name="screen_sticker_picker_empty_subtitle">Import images from your gallery to send them as stickers.</string>
+    <string name="a11y_sticker_picker_sticker">Send sticker %1$s</string>
+    <string name="a11y_sticker_picker_import">Import a sticker from the gallery</string>
+</resources>
