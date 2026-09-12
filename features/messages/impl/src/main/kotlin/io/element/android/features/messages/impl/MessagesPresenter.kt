@@ -38,6 +38,7 @@ import io.element.android.features.messages.impl.link.LinkState
 import io.element.android.features.messages.impl.messagecomposer.MessageComposerEvent
 import io.element.android.features.messages.impl.messagecomposer.MessageComposerState
 import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBannerState
+import io.element.android.features.messages.impl.sticker.StickerPickerState
 import io.element.android.features.messages.impl.timeline.MarkAsFullyRead
 import io.element.android.features.messages.impl.timeline.TimelineController
 import io.element.android.features.messages.impl.timeline.TimelineEvent
@@ -113,6 +114,7 @@ class MessagesPresenter(
     private val linkPresenter: Presenter<LinkState>,
     @Assisted private val actionListPresenter: Presenter<ActionListState>,
     private val customReactionPresenter: Presenter<CustomReactionState>,
+    private val stickerPickerPresenter: Presenter<StickerPickerState>,
     private val reactionSummaryPresenter: Presenter<ReactionSummaryState>,
     private val readReceiptBottomSheetPresenter: Presenter<ReadReceiptBottomSheetState>,
     private val pinnedMessagesBannerPresenter: Presenter<PinnedMessagesBannerState>,
@@ -165,6 +167,7 @@ class MessagesPresenter(
         val actionListState = actionListPresenter.present()
         val linkState = linkPresenter.present()
         val customReactionState = customReactionPresenter.present()
+        val stickerPickerState = stickerPickerPresenter.present()
         val reactionSummaryState = reactionSummaryPresenter.present()
         val readReceiptBottomSheetState = readReceiptBottomSheetPresenter.present()
         val pinnedMessagesBannerState = pinnedMessagesBannerPresenter.present()
@@ -305,6 +308,7 @@ class MessagesPresenter(
             userEventPermissions = userEventPermissions,
             composerState = composerState,
             voiceMessageComposerState = voiceMessageComposerState,
+            stickerPickerState = stickerPickerState,
             timelineState = timelineState,
             timelineProtectionState = timelineProtectionState,
             identityChangeState = identityChangeState,

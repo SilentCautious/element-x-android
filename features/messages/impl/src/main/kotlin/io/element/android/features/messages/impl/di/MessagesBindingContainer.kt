@@ -19,6 +19,8 @@ import io.element.android.features.messages.impl.link.LinkPresenter
 import io.element.android.features.messages.impl.link.LinkState
 import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBannerPresenter
 import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBannerState
+import io.element.android.features.messages.impl.sticker.StickerPickerPresenter
+import io.element.android.features.messages.impl.sticker.StickerPickerState
 import io.element.android.features.messages.impl.timeline.components.customreaction.CustomReactionPresenter
 import io.element.android.features.messages.impl.timeline.components.customreaction.CustomReactionState
 import io.element.android.features.messages.impl.timeline.components.reactionsummary.ReactionSummaryPresenter
@@ -52,6 +54,9 @@ interface MessagesBindingContainer {
 
     @Binds
     fun bindCustomReactionPresenter(presenter: CustomReactionPresenter): Presenter<CustomReactionState>
+
+    @Binds
+    fun bindStickerPickerPresenter(presenter: StickerPickerPresenter): Presenter<StickerPickerState>
 
     @Binds
     fun bindReactionSummaryPresenter(presenter: ReactionSummaryPresenter): Presenter<ReactionSummaryState>

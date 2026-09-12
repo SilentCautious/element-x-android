@@ -192,6 +192,9 @@ class MessageComposerPresenter(
         val isSendGalleryMessagesEnabled by featureFlagService.isFeatureEnabledFlow(FeatureFlags.SendGalleryMessages)
             .collectAsState(initial = false)
 
+        val isStickerPickerEnabled by featureFlagService.isFeatureEnabledFlow(FeatureFlags.StickerPicker)
+            .collectAsState(initial = false)
+
         val galleryMediaPicker = mediaPickerProvider.registerGalleryPicker { uri, mimeType ->
             handlePickedMedia(uri, mimeType)
         }
@@ -349,6 +352,10 @@ class MessageComposerPresenter(
                     showAttachmentSourcePicker = false
                     // Navigation to the create poll screen is done at the view layer
                 }
+                MessageComposerEvent.PickAttachmentSource.Sticker -> {
+                    showAttachmentSourcePicker = false
+                    // Display of the sticker picker is done at the view layer
+                }
                 is MessageComposerEvent.ToggleTextFormatting -> {
                     showAttachmentSourcePicker = false
                     localCoroutineScope.toggleTextFormatting(event.enabled, markdownTextEditorState, richTextEditorState)
@@ -432,6 +439,7 @@ class MessageComposerPresenter(
             showAttachmentSourcePicker = showAttachmentSourcePicker,
             showTextFormatting = showTextFormatting,
             canShareLocation = canShareLocation.value,
+            canSendSticker = isStickerPickerEnabled && !isInThread,
             suggestions = suggestions.toImmutableList(),
             resolveMentionDisplay = resolveMentionDisplay,
             resolveAtRoomMentionDisplay = resolveAtRoomMentionDisplay,

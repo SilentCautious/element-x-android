@@ -152,6 +152,7 @@ class MessageComposerPresenterTest : RobolectricTest() {
             assertThat(initialState.isInThreadTimeline).isFalse()
             assertThat(initialState.showAttachmentSourcePicker).isFalse()
             assertThat(initialState.canShareLocation).isTrue()
+            assertThat(initialState.canSendSticker).isFalse()
             assertThat(initialState.slashCommandAction).isEqualTo(AsyncAction.Uninitialized)
         }
     }
@@ -165,6 +166,33 @@ class MessageComposerPresenterTest : RobolectricTest() {
             val initialState = awaitFirstItem()
             assertThat(initialState.mode).isEqualTo(MessageComposerMode.Normal)
             assertThat(initialState.isInThreadTimeline).isTrue()
+        }
+    }
+
+    @Test
+    fun `present - when sticker picker is enabled, canSendSticker is true`() = runTest {
+        val presenter = createPresenter(
+            featureFlagService = FakeFeatureFlagService(
+                initialState = mapOf(FeatureFlags.StickerPicker.key to true)
+            ),
+        )
+        presenter.test {
+            val initialState = awaitFirstItem()
+            assertThat(initialState.canSendSticker).isTrue()
+        }
+    }
+
+    @Test
+    fun `present - when sticker picker is enabled in a thread, canSendSticker is false`() = runTest {
+        val presenter = createPresenter(
+            threadRoot = A_THREAD_ID,
+            featureFlagService = FakeFeatureFlagService(
+                initialState = mapOf(FeatureFlags.StickerPicker.key to true)
+            ),
+        )
+        presenter.test {
+            val initialState = awaitFirstItem()
+            assertThat(initialState.canSendSticker).isFalse()
         }
     }
 

@@ -40,6 +40,7 @@ internal fun MessagesViewWithIdentityChangePreview(
         onLinkClick = { _, _ -> },
         onSendLocationClick = {},
         onCreatePollClick = {},
+        onSendStickerClick = {},
         onJoinCallClick = {},
         onViewAllPinnedMessagesClick = {},
         knockRequestsBannerView = {},

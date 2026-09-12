@@ -161,4 +161,11 @@ enum class FeatureFlags(
         defaultValue = { false },
         isFinished = false,
     ),
+    StickerPicker(
+        key = "feature.sticker_picker",
+        title = "Sticker picker",
+        description = "Send stickers in rooms using a personal sticker pack.",
+        defaultValue = { false },
+        isFinished = false,
+    ),
 }

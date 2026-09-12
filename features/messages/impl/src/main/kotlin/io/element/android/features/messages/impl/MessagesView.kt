@@ -40,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,6 +74,8 @@ import io.element.android.features.messages.impl.messagecomposer.DisabledCompose
 import io.element.android.features.messages.impl.messagecomposer.MessageComposerEvent
 import io.element.android.features.messages.impl.messagecomposer.MessageComposerView
 import io.element.android.features.messages.impl.messagecomposer.suggestions.SuggestionsPickerView
+import io.element.android.features.messages.impl.sticker.StickerPickerBottomSheet
+import io.element.android.features.messages.impl.sticker.StickerPickerEvent
 import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBannerState
 import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBannerView
 import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBannerViewDefaults
@@ -147,6 +150,7 @@ fun MessagesView(
     onLinkClick: (String, Boolean) -> Unit,
     onSendLocationClick: () -> Unit,
     onCreatePollClick: () -> Unit,
+    onSendStickerClick: () -> Unit,
     onJoinCallClick: (isAudioCall: Boolean) -> Unit,
     onViewAllPinnedMessagesClick: () -> Unit,
     onThreadsListClick: () -> Unit,
@@ -304,6 +308,7 @@ fun MessagesView(
                             },
                             onSendLocationClick = onSendLocationClick,
                             onCreatePollClick = onCreatePollClick,
+                            onSendStickerClick = onSendStickerClick,
                             onSwipeToReply = { targetEvent ->
                                 state.eventSink(MessagesEvent.HandleAction(TimelineItemAction.Reply, targetEvent))
                             },
@@ -507,6 +512,7 @@ private fun MessagesViewContent(
     onGalleryItemClick: ((TimelineItem.Event, Int) -> Unit),
     onSendLocationClick: () -> Unit,
     onCreatePollClick: () -> Unit,
+    onSendStickerClick: () -> Unit,
     onViewAllPinnedMessagesClick: () -> Unit,
     onJoinCallClick: (isAudioCall: Boolean) -> Unit,
     forceJumpToBottomVisibility: Boolean,
@@ -520,12 +526,25 @@ private fun MessagesViewContent(
             .navigationBarsPadding()
             .imePadding(),
     ) {
+        var showStickerPicker by rememberSaveable { mutableStateOf(false) }
         AttachmentsBottomSheet(
             state = state.composerState,
             onSendLocationClick = onSendLocationClick,
             onCreatePollClick = onCreatePollClick,
+            onSendStickerClick = { showStickerPicker = true },
             enableTextFormatting = state.enableTextFormatting,
         )
+
+        if (showStickerPicker) {
+            StickerPickerBottomSheet(
+                isVisible = showStickerPicker,
+                state = state.stickerPickerState,
+                onDismiss = {
+                    showStickerPicker = false
+                    state.stickerPickerState.eventSink(StickerPickerEvent.Dismiss)
+                },
+            )
+        }
 
         if (state.voiceMessageComposerState.showPermissionRationaleDialog) {
             VoiceMessagePermissionRationaleDialog(
@@ -705,6 +724,7 @@ internal fun MessagesViewPreview(@PreviewParameter(MessagesStatePreviewParam::cl
         onLinkClick = { _, _ -> },
         onSendLocationClick = {},
         onCreatePollClick = {},
+        onSendStickerClick = {},
         onJoinCallClick = {},
         onViewAllPinnedMessagesClick = { },
         forceJumpToBottomVisibility = true,
@@ -762,6 +782,7 @@ internal fun MessagesViewA11yPreview() = ElementPreview {
         onLinkClick = { _, _ -> },
         onSendLocationClick = {},
         onCreatePollClick = {},
+        onSendStickerClick = {},
         onJoinCallClick = {},
         onViewAllPinnedMessagesClick = {},
         onThreadsListClick = {},
