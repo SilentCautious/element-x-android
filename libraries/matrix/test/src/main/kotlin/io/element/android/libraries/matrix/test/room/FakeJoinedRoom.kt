@@ -16,6 +16,7 @@ import io.element.android.libraries.matrix.api.core.RoomAlias
 import io.element.android.libraries.matrix.api.core.SendHandle
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.encryption.identity.IdentityStateChange
+import io.element.android.libraries.matrix.api.media.ImageInfo
 import io.element.android.libraries.matrix.api.room.BaseRoom
 import io.element.android.libraries.matrix.api.room.CreateTimelineParams
 import io.element.android.libraries.matrix.api.room.IntentionalMention
@@ -95,6 +96,8 @@ class FakeJoinedRoom(
     private val setOwnMemberDisplayNameResult: (String) -> Result<Unit> = { lambdaError() },
 ) : JoinedRoom, BaseRoom by baseRoom {
     private val sendQueueUpdates = MutableSharedFlow<SendQueueUpdate>(extraBufferCapacity = 10)
+    val sentStickers = mutableListOf<Triple<String, String, ImageInfo?>>()
+    private var sendStickerResult: Result<Unit> = Result.success(Unit)
 
     fun givenRoomMembersState(state: RoomMembersState) {
         baseRoom.givenRoomMembersState(state)
@@ -254,6 +257,15 @@ class FakeJoinedRoom(
 
     override suspend fun sendLiveLocation(geoUri: String): Result<Unit> = simulateLongTask {
         sendLiveLocationResult(geoUri)
+    }
+
+    override suspend fun sendSticker(url: String, body: String, info: ImageInfo?): Result<Unit> {
+        sentStickers.add(Triple(url, body, info))
+        return sendStickerResult
+    }
+
+    fun givenSendStickerResult(result: Result<Unit>) {
+        sendStickerResult = result
     }
 
     override suspend fun setOwnMemberDisplayName(displayName: String): Result<Unit> = simulateLongTask {

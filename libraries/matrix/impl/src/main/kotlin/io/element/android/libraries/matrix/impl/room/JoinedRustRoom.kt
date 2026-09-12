@@ -21,6 +21,7 @@ import io.element.android.libraries.matrix.api.core.RoomAlias
 import io.element.android.libraries.matrix.api.core.SendHandle
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.encryption.identity.IdentityStateChange
+import io.element.android.libraries.matrix.api.media.ImageInfo
 import io.element.android.libraries.matrix.api.notificationsettings.NotificationSettingsService
 import io.element.android.libraries.matrix.api.room.BaseRoom
 import io.element.android.libraries.matrix.api.room.CreateTimelineParams
@@ -72,6 +73,8 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.matrix.rustcomponents.sdk.DateDividerMode
 import org.matrix.rustcomponents.sdk.IdentityStatusChangeListener
 import org.matrix.rustcomponents.sdk.KnockRequestsListener
@@ -554,6 +557,24 @@ class JoinedRustRoom(
                 is LiveLocationException -> throwable.map()
                 else -> throwable
             }
+        }
+    }
+
+    override suspend fun sendSticker(url: String, body: String, info: ImageInfo?): Result<Unit> = withContext(roomDispatcher) {
+        runCatchingExceptions {
+            val content = buildJsonObject {
+                put("body", body)
+                put("url", url)
+                if (info != null) {
+                    put("info", buildJsonObject {
+                        info.width?.let { put("w", it) }
+                        info.height?.let { put("h", it) }
+                        info.mimetype?.let { put("mimetype", it) }
+                        info.size?.let { put("size", it) }
+                    })
+                }
+            }
+            innerRoom.sendRaw(eventType = "m.sticker", content = content.toString())
         }
     }
 

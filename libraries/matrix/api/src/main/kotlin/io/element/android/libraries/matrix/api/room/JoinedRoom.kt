@@ -14,6 +14,7 @@ import io.element.android.libraries.matrix.api.core.RoomAlias
 import io.element.android.libraries.matrix.api.core.SendHandle
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.encryption.identity.IdentityStateChange
+import io.element.android.libraries.matrix.api.media.ImageInfo
 import io.element.android.libraries.matrix.api.room.history.RoomHistoryVisibility
 import io.element.android.libraries.matrix.api.room.join.JoinRule
 import io.element.android.libraries.matrix.api.room.knock.KnockRequest
@@ -316,6 +317,17 @@ interface JoinedRoom : BaseRoom {
      * @return Result indicating success or failure.
      */
     suspend fun sendLiveLocation(geoUri: String): Result<Unit>
+
+    /**
+     * Send a sticker event (`m.sticker`) to the room.
+     *
+     * @param url the mxc URI of the sticker image.
+     * @param body a textual description of the sticker.
+     * @param info optional image info (dimensions, mimetype, size).
+     * @return a [Result] indicating whether the event was sent. Note: there is no local echo; the sticker
+     *         appears in the timeline once it comes back through a sync.
+     */
+    suspend fun sendSticker(url: String, body: String, info: ImageInfo?): Result<Unit>
 
     /**
      * Sets the display name of the current user within this room.
