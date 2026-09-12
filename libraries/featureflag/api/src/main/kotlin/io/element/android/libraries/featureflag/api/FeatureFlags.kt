@@ -26,7 +26,7 @@ enum class FeatureFlags(
         key = "feature.showBlockedUsersDetails",
         title = "Show blocked users details",
         description = "Show the name and avatar of blocked users in the blocked users list",
-        defaultValue = { false },
+        defaultValue = { true },
         isFinished = false,
     ),
     SyncOnPush(
@@ -42,7 +42,7 @@ enum class FeatureFlags(
         description = "This setting controls how end-to-end encryption (E2E) keys are shared." +
             " Enabling it will prevent the inclusion of devices that have not been explicitly verified by their owners." +
             " You'll have to stop and re-open the app manually for that setting to take effect.",
-        defaultValue = { false },
+        defaultValue = { true },
         isFinished = false,
     ),
     PrintLogsToLogcat(
@@ -59,7 +59,7 @@ enum class FeatureFlags(
         key = "feature.selectable_media_quality",
         title = "Select media quality per upload",
         description = "You can select the media quality for each attachment you upload.",
-        defaultValue = { false },
+        defaultValue = { true },
         // False so it's displayed in the developer options screen
         isFinished = false,
     ),
@@ -67,7 +67,7 @@ enum class FeatureFlags(
         key = "feature.thread_timeline",
         title = "Threads",
         description = "Renders thread messages as a dedicated timeline. Restarting the app is required for this setting to fully take effect.",
-        defaultValue = { false },
+        defaultValue = { true },
         isFinished = false,
         isInLabs = true,
     ),
@@ -76,21 +76,21 @@ enum class FeatureFlags(
         title = "Multi accounts",
         description = "Allow the application to connect to multiple accounts at the same time." +
             "\n\nWARNING: this feature is EXPERIMENTAL and UNSTABLE.",
-        defaultValue = { false },
+        defaultValue = { true },
         isFinished = false,
     ),
     QrCodeLogin(
         key = "feature.qr_code_login",
         title = "QR Code Login",
         description = "Allow logging in on other devices using a QR code.",
-        defaultValue = { false },
+        defaultValue = { true },
         isFinished = false,
     ),
     AllowBlackTheme(
         key = "feature.allow_black_theme",
         title = "Black theme",
         description = "Allow selecting the black appearance theme for battery saving on OLED.",
-        defaultValue = { false },
+        defaultValue = { true },
         isFinished = false,
     ),
     ValidateNetworkWhenSchedulingNotificationFetching(
@@ -106,21 +106,21 @@ enum class FeatureFlags(
         title = "Jump to unread messages",
         description = "Show a button to jump to the read marker, plus a count badge on the scroll-to-bottom button " +
             "when new messages arrive while scrolled away.",
-        defaultValue = { false },
+        defaultValue = { true },
         isFinished = false,
     ),
     SlashCommand(
         key = "feature.slash_command",
         title = "Parse slash commands in the message composer",
         description = "Allow parsing slash commands in the message composer and perform action.",
-        defaultValue = { false },
+        defaultValue = { true },
         isFinished = false,
     ),
     RoomThreadList(
         key = "feature.room_thread_list",
         title = "Add a list of threads in a room",
         description = "Add a new screen with a list of threads in a room.",
-        defaultValue = { false },
+        defaultValue = { true },
         isFinished = false,
     ),
     AutomaticBackPagination(
@@ -128,21 +128,21 @@ enum class FeatureFlags(
         title = "Automatic back pagination of rooms",
         description = "Allow the app to automatically back paginate in rooms to pre-fetch older messages in background." +
             "\nRequires an app restart to take effect.",
-        defaultValue = { false },
+        defaultValue = { true },
         isFinished = false,
     ),
     UnreadIndicatorCount(
         key = "feature.unread_indicator_count",
         title = "Unread indicator count",
         description = "Show the number of unread messages on the unread indicator in the room list.",
-        defaultValue = { false },
+        defaultValue = { true },
         isFinished = false,
     ),
     SendGalleryMessages(
         key = "feature.send_gallery_messages",
         title = "Send gallery messages",
         description = "Allow sending multiple media items in a single message.",
-        defaultValue = { false },
+        defaultValue = { true },
         isFinished = false,
         isInLabs = true,
     ),
@@ -150,7 +150,7 @@ enum class FeatureFlags(
         key = "feature.knock",
         title = "Ask to join",
         description = "Allow creating rooms which users can request access to.",
-        defaultValue = { false },
+        defaultValue = { true },
         isFinished = false,
         isInLabs = true,
     ),
@@ -158,14 +158,14 @@ enum class FeatureFlags(
         key = "feature.message_search",
         title = "Message search",
         description = "Index messages locally so they can be searched. Only messages received while enabled are indexed.",
-        defaultValue = { false },
+        defaultValue = { true },
         isFinished = false,
     ),
     StickerPicker(
         key = "feature.sticker_picker",
         title = "Sticker picker",
         description = "Send stickers in rooms using a personal sticker pack.",
-        defaultValue = { false },
+        defaultValue = { true },
         isFinished = false,
     ),
 }
