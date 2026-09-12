@@ -125,8 +125,8 @@ class FakeMatrixClient(
     private val getJoinedRoomIdsResult: () -> Result<Set<RoomId>> = { Result.success(emptySet()) },
     private val getRecentEmojisLambda: () -> Result<List<String>> = { Result.success(emptyList()) },
     private val addRecentEmojiLambda: (String) -> Result<Unit> = { Result.success(Unit) },
-    private val getAccountDataLambda: (String) -> Result<String?> = { lambdaError() },
-    private val setAccountDataLambda: (String, String) -> Result<Unit> = { _, _ -> lambdaError() },
+    var getAccountDataLambda: (String) -> Result<String?> = { lambdaError() },
+    var setAccountDataLambda: (String, String) -> Result<Unit> = { _, _ -> lambdaError() },
     private val markRoomAsFullyReadResult: (RoomId, EventId) -> Result<Unit> = { _, _ -> lambdaError() },
     private val markAllRoomsAsReadResult: () -> Result<Unit> = { Result.success(Unit) },
     private val performDatabaseVacuumLambda: () -> Result<Unit> = { lambdaError() },
@@ -422,12 +422,18 @@ class FakeMatrixClient(
         return getRecentEmojisLambda()
     }
 
+    var savedAccountData: String? = null
+
     override suspend fun getAccountData(eventType: String): Result<String?> {
         return getAccountDataLambda(eventType)
     }
 
     override suspend fun setAccountData(eventType: String, content: String): Result<Unit> {
-        return setAccountDataLambda(eventType, content)
+        val result = setAccountDataLambda(eventType, content)
+        if (result.isSuccess) {
+            savedAccountData = content
+        }
+        return result
     }
 
     override suspend fun markRoomAsFullyRead(roomId: RoomId, eventId: EventId): Result<Unit> {
