@@ -124,6 +124,51 @@ class StickerPickerPresenterTest {
         }
     }
 
+    @Test
+    fun `present - read failure sets import error and does not persist`() = runTest {
+        val client = FakeMatrixClient().apply {
+            getAccountDataLambda = { Result.success(null) }
+            setAccountDataLambda = { _, content -> savedAccountData = content; Result.success(Unit) }
+        }
+        createPresenter(matrixClient = client, mediaReader = FakeStickerMediaReader()).test {
+            val state = consumeItemsUntilPredicate { it.stickers.isSuccess() }.last()
+            state.eventSink(
+                StickerPickerEvent.StickerPicked(
+                    uri = mockk(),
+                    mimeType = "image/png",
+                    filename = "cat.png",
+                )
+            )
+            val latest = consumeItemsUntilPredicate { it.error == StickerPickerError.Import }.last()
+            assertThat(latest.isImporting).isFalse()
+            assertThat(latest.stickers.dataOrNull()).isEmpty()
+            assertThat(client.savedAccountData).isNull()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `present - persist failure sets import error and keeps previous pack`() = runTest {
+        val client = FakeMatrixClient().apply {
+            getAccountDataLambda = { Result.success(packJson) }
+            setAccountDataLambda = { _, _ -> Result.failure(IllegalStateException("boom")) }
+        }
+        createPresenter(matrixClient = client, mediaReader = FakeStickerMediaReader(aMedia())).test {
+            val state = consumeItemsUntilPredicate { it.stickers.dataOrNull()?.size == 1 }.last()
+            state.eventSink(
+                StickerPickerEvent.StickerPicked(
+                    uri = mockk(),
+                    mimeType = "image/png",
+                    filename = "cat.png",
+                )
+            )
+            val latest = consumeItemsUntilPredicate { it.error == StickerPickerError.Import }.last()
+            assertThat(latest.stickers.dataOrNull()).hasSize(1)
+            assertThat(client.savedAccountData).isNull()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     private fun TestScope.createPresenter(
         accountData: String? = null,
         room: FakeJoinedRoom = FakeJoinedRoom(),
