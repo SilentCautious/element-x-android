@@ -80,6 +80,7 @@ import io.element.android.libraries.matrix.ui.messages.reply.InReplyToDetailsPre
 import io.element.android.libraries.matrix.ui.messages.reply.aProfileDetailsReady
 import io.element.android.libraries.testtags.TestTags
 import io.element.android.libraries.testtags.testTag
+import io.element.android.libraries.textcomposer.R
 import io.element.android.libraries.textcomposer.components.SendButtonIcon
 import io.element.android.libraries.textcomposer.components.TextFormatting
 import io.element.android.libraries.textcomposer.components.VoiceMessageDeleteButtonIcon
@@ -132,6 +133,8 @@ fun TextComposer(
     modifier: Modifier = Modifier,
     showTextFormatting: Boolean = false,
     isInThreadTimeline: Boolean = false,
+    onOpenStickerPicker: () -> Unit = {},
+    canSendSticker: Boolean = false,
 ) {
     val markdown = when (state) {
         is TextEditorState.Markdown -> state.state.text.value()
@@ -243,6 +246,7 @@ fun TextComposer(
         composerMode.isEditing,
         voiceMessageState.endButtonKey(),
         canSendTextMessage,
+        canSendSticker,
     ) {
         when {
             composerMode.isEditing -> EndButtonParams(
@@ -261,18 +265,31 @@ fun TextComposer(
             )
             !canSendTextMessage ->
                 when (voiceMessageState) {
-                    VoiceMessageState.Idle -> EndButtonParams(
-                        endButtonContentDescriptionResId = CommonStrings.a11y_voice_message_record,
-                        endButtonClick = {
-                            performHapticFeedback()
-                            onVoiceRecorderEvent.invoke(VoiceMessageRecorderEvent.Start)
-                        },
-                        endButtonContent = @Composable {
-                            VoiceMessageRecorderButtonIcon(
-                                isRecording = false,
-                            )
-                        }
-                    )
+                    VoiceMessageState.Idle -> if (canSendSticker) {
+                        EndButtonParams(
+                            endButtonContentDescriptionResId = R.string.rich_text_editor_a11y_open_sticker_picker,
+                            endButtonClick = onOpenStickerPicker,
+                            endButtonContent = @Composable {
+                                Text(
+                                    text = "😄",
+                                    style = ElementTheme.typography.fontHeadingXlRegular,
+                                )
+                            }
+                        )
+                    } else {
+                        EndButtonParams(
+                            endButtonContentDescriptionResId = CommonStrings.a11y_voice_message_record,
+                            endButtonClick = {
+                                performHapticFeedback()
+                                onVoiceRecorderEvent.invoke(VoiceMessageRecorderEvent.Start)
+                            },
+                            endButtonContent = @Composable {
+                                VoiceMessageRecorderButtonIcon(
+                                    isRecording = false,
+                                )
+                            }
+                        )
+                    }
                     is VoiceMessageState.Recording -> EndButtonParams(
                         endButtonContentDescriptionResId = CommonStrings.a11y_voice_message_stop_recording,
                         endButtonClick = {
@@ -741,6 +758,21 @@ internal fun TextComposerSimplePreview() = ElementPreview {
 
 @PreviewsDayNight
 @Composable
+internal fun TextComposerStickerPreview() = ElementPreview {
+    PreviewColumn(
+        items = persistentListOf(aTextEditorStateMarkdown(initialText = "", initialFocus = true)),
+    ) { textEditorState ->
+        ATextComposer(
+            state = textEditorState,
+            voiceMessageState = VoiceMessageState.Idle,
+            composerMode = MessageComposerMode.Normal,
+            canSendSticker = true,
+        )
+    }
+}
+
+@PreviewsDayNight
+@Composable
 internal fun TextComposerSimpleNotEncryptedPreview() = ElementPreview {
     PreviewColumn(
         items = aTextEditorStateMarkdownList(isRoomEncrypted = false),
@@ -1057,6 +1089,8 @@ private fun ATextComposer(
     voiceMessageState: VoiceMessageState,
     composerMode: MessageComposerMode,
     showTextFormatting: Boolean = false,
+    onOpenStickerPicker: () -> Unit = {},
+    canSendSticker: Boolean = false,
 ) {
     TextComposer(
         state = state,
@@ -1078,6 +1112,8 @@ private fun ATextComposer(
         resolveMentionDisplay = { _, _ -> TextDisplay.Plain },
         resolveAtRoomMentionDisplay = { TextDisplay.Plain },
         onSelectRichContent = null,
+        onOpenStickerPicker = onOpenStickerPicker,
+        canSendSticker = canSendSticker,
     )
 }
 

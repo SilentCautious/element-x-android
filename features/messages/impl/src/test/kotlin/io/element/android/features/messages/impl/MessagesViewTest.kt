@@ -737,14 +737,21 @@ class MessagesViewTest : RobolectricTest() {
 
     @Test
     fun `clicking on search button calls the expected function`() = runAndroidComposeUiTest {
-        val state = aMessagesState()
+        val state = aMessagesState(isRoomMessageSearchEnabled = true)
         val onSearchClicked = lambdaRecorder<Unit> {}
         setMessagesView(
             state = state,
             onSearchClick = onSearchClicked,
         )
-        onNodeWithContentDescription("Search").performClick()
+        onNodeWithContentDescription(activity!!.getString(R.string.screen_room_message_search_title)).performClick()
         onSearchClicked.assertions().isCalledOnce()
+    }
+
+    @Test
+    fun `search button is hidden when message search is disabled`() = runAndroidComposeUiTest {
+        val state = aMessagesState(isRoomMessageSearchEnabled = false)
+        setMessagesView(state = state)
+        onNodeWithContentDescription(activity!!.getString(R.string.screen_room_message_search_title)).assertDoesNotExist()
     }
 
     @Test
@@ -808,7 +815,6 @@ private fun AndroidComposeUiTest<ComponentActivity>.setMessagesView(
     onLinkClick: (String, Boolean) -> Unit = EnsureNeverCalledWithTwoParams(),
     onSendLocationClick: () -> Unit = EnsureNeverCalled(),
     onCreatePollClick: () -> Unit = EnsureNeverCalled(),
-    onSendStickerClick: () -> Unit = EnsureNeverCalled(),
     onJoinCallClick: (Boolean) -> Unit = EnsureNeverCalledWithParam(),
     onViewAllPinnedMessagesClick: () -> Unit = EnsureNeverCalled(),
     onThreadsListClicked: () -> Unit = EnsureNeverCalled(),
@@ -828,7 +834,6 @@ private fun AndroidComposeUiTest<ComponentActivity>.setMessagesView(
                 onLinkClick = onLinkClick,
                 onSendLocationClick = onSendLocationClick,
                 onCreatePollClick = onCreatePollClick,
-                onSendStickerClick = onSendStickerClick,
                 onJoinCallClick = onJoinCallClick,
                 onViewAllPinnedMessagesClick = onViewAllPinnedMessagesClick,
                 knockRequestsBannerView = {},

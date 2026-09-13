@@ -42,6 +42,7 @@ import io.element.android.features.messages.impl.attachments.preview.Attachments
 import io.element.android.features.messages.impl.pinned.DefaultPinnedEventsTimelineProvider
 import io.element.android.features.messages.impl.pinned.list.PinnedMessagesListNode
 import io.element.android.features.messages.impl.report.ReportMessageNode
+import io.element.android.features.messages.impl.search.RoomMessageSearchNode
 import io.element.android.features.messages.impl.threads.ThreadedMessagesNode
 import io.element.android.features.messages.impl.threads.list.ThreadsListNode
 import io.element.android.features.messages.impl.timeline.TimelineController
@@ -208,6 +209,9 @@ class MessagesFlowNode(
         data object ThreadsList : NavTarget
 
         @Parcelize
+        data object RoomMessageSearch : NavTarget
+
+        @Parcelize
         data class AvatarPreview(val name: String, val avatarUrl: String) : NavTarget
     }
 
@@ -359,6 +363,10 @@ class MessagesFlowNode(
 
                     override fun navigateToThreadsList() {
                         backstack.push(NavTarget.ThreadsList)
+                    }
+
+                    override fun navigateToRoomMessageSearch() {
+                        backstack.push(NavTarget.RoomMessageSearch)
                     }
 
                     override fun navigateToDeveloperSettings() {
@@ -673,6 +681,15 @@ class MessagesFlowNode(
                 }
                 createNode<ThreadedMessagesNode>(buildContext, listOf(inputs, callback))
             }
+            NavTarget.RoomMessageSearch -> {
+                val callback = object : RoomMessageSearchNode.Callback {
+                    override fun viewInTimeline(eventId: EventId) {
+                        this@MessagesFlowNode.viewInTimeline(eventId)
+                    }
+                }
+                createNode<RoomMessageSearchNode>(buildContext, listOf(callback))
+            }
+
             NavTarget.ThreadsList -> {
                 val callback = object : ThreadsListNode.Callback {
                     override fun openThread(threadId: ThreadId) {

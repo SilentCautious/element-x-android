@@ -13,13 +13,56 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
+
+private const val STICKER_PICKER_WIDGET_TYPE = "m.stickerpicker"
+
+fun extractStickerPickerWidgetUrl(raw: String?): String? {
+    if (raw.isNullOrBlank()) return null
+    val root = runCatching { Json.parseToJsonElement(raw).jsonObject }.getOrNull() ?: return null
+    root.entries.forEach { (widgetKey, value) ->
+        if (value !is JsonObject) return@forEach
+        val content = value["content"] as? JsonObject ?: value
+        val type = content.stringOrNull("type")
+        val id = content.stringOrNull("id") ?: value.stringOrNull("id")
+        if (type == STICKER_PICKER_WIDGET_TYPE || id == "stickerpicker" || widgetKey.contains("stickerpicker", ignoreCase = true)) {
+            content.stringOrNull("url")?.takeIf { it.isNotBlank() }?.let { return it }
+        }
+    }
+    return null
+}
+
+fun parseStickerIndexPackFiles(raw: String): List<String> {
+    val root = runCatching { Json.parseToJsonElement(raw).jsonObject }.getOrNull() ?: return emptyList()
+    val packs = root["packs"] as? JsonArray ?: return emptyList()
+    return packs.mapNotNull { (it as? JsonPrimitive)?.takeIf { primitive -> primitive.isString }?.contentOrNull?.takeIf(String::isNotBlank) }
+}
+
+fun parseServerStickerPack(raw: String): ImmutableList<StickerImage> {
+    val root = runCatching { Json.parseToJsonElement(raw).jsonObject }.getOrNull() ?: return persistentListOf()
+    val packId = root.stringOrNull("id").orEmpty()
+    val stickers = root["stickers"] as? JsonArray ?: return persistentListOf()
+    return stickers.mapIndexedNotNull { index, value ->
+        val sticker = value as? JsonObject ?: return@mapIndexedNotNull null
+        val url = sticker.stringOrNull("url") ?: return@mapIndexedNotNull null
+        val stickerId = sticker.stringOrNull("id") ?: sticker.stringOrNull("body") ?: index.toString()
+        val shortcode = if (packId.isBlank()) stickerId else "$packId-$stickerId"
+        StickerImage(
+            shortcode = sanitizeShortcode(shortcode),
+            url = url,
+            body = sticker.stringOrNull("body"),
+            info = (sticker["info"] as? JsonObject)?.toImageInfo(),
+        )
+    }.distinctBy { it.shortcode }.toImmutableList()
+}
 
 @Immutable
 data class StickerImage(
@@ -51,7 +94,14 @@ data class UserStickerPack(
 fun sanitizeShortcode(raw: String): String {
     val cleaned = raw
         .substringBeforeLast('.')
-        .map { c -> if (c.isLetterOrDigit() && c.code < 128) c else if (c == '-' || c == '_') c else if (c.isWhitespace()) '_' else null }
+        .map { c ->
+            when {
+                c.isLetterOrDigit() && c.code < 128 -> c
+                c == '-' || c == '_' -> c
+                c.isWhitespace() -> '_'
+                else -> null
+            }
+        }
         .filterNotNull()
         .filter { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' || it == '-' || it == '_' }
         .take(100)
@@ -112,3 +162,5 @@ private fun JsonObject.toImageInfo(): ImageInfo = ImageInfo(
 )
 
 private fun JsonObject.getLong(key: String): Long? = (get(key) as? JsonPrimitive)?.content?.toLongOrNull()
+
+private fun JsonObject.stringOrNull(key: String): String? = (get(key) as? JsonPrimitive)?.contentOrNull

@@ -352,10 +352,6 @@ class MessageComposerPresenter(
                     showAttachmentSourcePicker = false
                     // Navigation to the create poll screen is done at the view layer
                 }
-                MessageComposerEvent.PickAttachmentSource.Sticker -> {
-                    showAttachmentSourcePicker = false
-                    // Display of the sticker picker is done at the view layer
-                }
                 is MessageComposerEvent.ToggleTextFormatting -> {
                     showAttachmentSourcePicker = false
                     localCoroutineScope.toggleTextFormatting(event.enabled, markdownTextEditorState, richTextEditorState)

@@ -14,12 +14,10 @@ import kotlinx.collections.immutable.persistentListOf
 
 internal fun aStickerPickerState(
     stickers: AsyncData<ImmutableList<StickerImage>> = AsyncData.Success(persistentListOf(aStickerImage())),
-    isImporting: Boolean = false,
     error: StickerPickerError? = null,
     sendResult: Boolean? = null,
 ) = StickerPickerState(
     stickers = stickers,
-    isImporting = isImporting,
     error = error,
     sendResult = sendResult,
     eventSink = {},
@@ -44,7 +42,7 @@ class StickerPickerStatePreviewParam : PreviewParameterProvider<StickerPickerSta
                 )
             ),
         ),
-        aStickerPickerState(isImporting = true),
+        aStickerPickerState(error = StickerPickerError.Load, stickers = AsyncData.Success(persistentListOf())),
         aStickerPickerState(error = StickerPickerError.Send),
         aStickerPickerState(
             stickers = AsyncData.Loading(),

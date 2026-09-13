@@ -62,6 +62,7 @@ data class MessagesState(
     val topBarSharedHistoryIcon: SharedHistoryIcon,
     val successorRoom: SuccessorRoom?,
     val threads: Threads,
+    val isRoomMessageSearchEnabled: Boolean,
     val showLiveLocationShareBanner: Boolean,
     val eventSink: (MessagesEvent) -> Unit
 ) {

@@ -145,6 +145,8 @@ class MessagesNode(
 
         fun navigateToThreadsList()
 
+        fun navigateToRoomMessageSearch()
+
         fun navigateToAvatarPreview(username: String, avatarUrl: String)
     }
 
@@ -321,7 +323,6 @@ class MessagesNode(
                 },
                 onSendLocationClick = callback::navigateToSendLocation,
                 onCreatePollClick = callback::navigateToCreatePoll,
-                onSendStickerClick = {},
                 onJoinCallClick = { isAudioCall ->
                     callback.navigateToRoomCall(room.roomId, isAudioCall)
                 },
@@ -343,7 +344,7 @@ class MessagesNode(
                     )
                 },
                 onThreadsListClick = callback::navigateToThreadsList,
-                onSearchClick = {},
+                onSearchClick = callback::navigateToRoomMessageSearch,
             )
             roomMemberModerationRenderer.Render(
                 state = state.roomMemberModerationState,

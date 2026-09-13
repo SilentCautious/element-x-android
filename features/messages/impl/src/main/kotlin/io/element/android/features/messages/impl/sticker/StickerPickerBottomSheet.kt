@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -45,7 +44,6 @@ import io.element.android.libraries.designsystem.modifiers.niceClickable
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.CircularProgressIndicator
-import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.ModalBottomSheet
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.matrix.api.media.MediaSource
@@ -83,6 +81,8 @@ internal fun StickerPickerBottomSheet(
 
 @Composable
 private fun StickerPickerContent(state: StickerPickerState) {
+    val shouldShowReload = state.error == StickerPickerError.Load ||
+        (state.stickers is AsyncData.Success && state.stickers.dataOrNull().isNullOrEmpty())
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -97,13 +97,14 @@ private fun StickerPickerContent(state: StickerPickerState) {
                 style = ElementTheme.typography.fontBodyLgMedium,
                 modifier = Modifier.weight(1f),
             )
-            if (state.isImporting) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            } else {
-                Icon(
-                    modifier = Modifier.niceClickable { state.eventSink(StickerPickerEvent.ImportSticker) },
-                    imageVector = CompoundIcons.Plus(),
-                    contentDescription = stringResource(R.string.a11y_sticker_picker_import),
+            if (shouldShowReload) {
+                Text(
+                    text = stringResource(CommonStrings.action_retry),
+                    style = ElementTheme.typography.fontBodyMdMedium,
+                    color = ElementTheme.colors.textActionPrimary,
+                    modifier = Modifier
+                        .niceClickable { state.eventSink(StickerPickerEvent.Reload) }
+                        .padding(8.dp),
                 )
             }
         }

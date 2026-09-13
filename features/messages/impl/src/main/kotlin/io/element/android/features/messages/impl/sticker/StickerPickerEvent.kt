@@ -7,11 +7,8 @@
 
 package io.element.android.features.messages.impl.sticker
 
-import android.net.Uri
-
 sealed interface StickerPickerEvent {
     data object Dismiss : StickerPickerEvent
+    data object Reload : StickerPickerEvent
     data class SelectSticker(val sticker: StickerImage) : StickerPickerEvent
-    data object ImportSticker : StickerPickerEvent
-    data class StickerPicked(val uri: Uri, val mimeType: String?, val filename: String?) : StickerPickerEvent
 }

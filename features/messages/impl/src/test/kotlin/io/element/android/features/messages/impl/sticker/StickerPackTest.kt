@@ -64,7 +64,11 @@ class StickerPackTest {
 
     @Test
     fun `parse - compound values where primitives are expected degrade gracefully`() {
-        val json = """{"pack": {"display_name": {}}, "images": {"obj": {"url": {}, "body": [], "info": "nope"}, "num": {"url": "mxc://e.org/num", "info": {"w": {}, "size": []}}, "good": {"url": "mxc://e.org/good"}}}"""
+        val json = """
+            {"pack": {"display_name": {}}, "images": {"obj": {"url": {}, "body": [], "info": "nope"},
+            "num": {"url": "mxc://e.org/num", "info": {"w": {}, "size": []}},
+            "good": {"url": "mxc://e.org/good"}}}
+        """.trimIndent()
         val pack = parseUserStickerPack(json)
         assertThat(pack.displayName).isNull()
         assertThat(pack.stickers.map { it.shortcode }).containsExactly("num", "good").inOrder()

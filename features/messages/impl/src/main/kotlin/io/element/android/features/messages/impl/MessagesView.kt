@@ -74,11 +74,11 @@ import io.element.android.features.messages.impl.messagecomposer.DisabledCompose
 import io.element.android.features.messages.impl.messagecomposer.MessageComposerEvent
 import io.element.android.features.messages.impl.messagecomposer.MessageComposerView
 import io.element.android.features.messages.impl.messagecomposer.suggestions.SuggestionsPickerView
-import io.element.android.features.messages.impl.sticker.StickerPickerBottomSheet
-import io.element.android.features.messages.impl.sticker.StickerPickerEvent
 import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBannerState
 import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBannerView
 import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBannerViewDefaults
+import io.element.android.features.messages.impl.sticker.StickerPickerBottomSheet
+import io.element.android.features.messages.impl.sticker.StickerPickerEvent
 import io.element.android.features.messages.impl.timeline.FOCUS_ON_PINNED_EVENT_DEBOUNCE_DURATION_IN_MILLIS
 import io.element.android.features.messages.impl.timeline.TimelineEvent
 import io.element.android.features.messages.impl.timeline.TimelineView
@@ -151,7 +151,6 @@ fun MessagesView(
     onLinkClick: (String, Boolean) -> Unit,
     onSendLocationClick: () -> Unit,
     onCreatePollClick: () -> Unit,
-    onSendStickerClick: () -> Unit,
     onJoinCallClick: (isAudioCall: Boolean) -> Unit,
     onViewAllPinnedMessagesClick: () -> Unit,
     onThreadsListClick: () -> Unit,
@@ -223,6 +222,8 @@ fun MessagesView(
         state.customReactionState.eventSink(CustomReactionEvent.ShowCustomReactionSheet(event))
     }
 
+    var showStickerPicker by rememberSaveable { mutableStateOf(false) }
+
     val expandableState = rememberExpandableBottomSheetLayoutState()
     ExpandableBottomSheetLayout(
         modifier = modifier
@@ -261,6 +262,7 @@ fun MessagesView(
                             menuActions = {
                                 MessagesMenuActions(
                                     displayThreads = state.timelineState.timelineMode !is Timeline.Mode.Thread && state.threads.hasThreads,
+                                    displaySearch = state.isRoomMessageSearchEnabled,
                                     roomCallState = state.roomCallState,
                                     onJoinCallClick = onJoinCallClick,
                                     onThreadsListClick = onThreadsListClick,
@@ -311,7 +313,6 @@ fun MessagesView(
                             },
                             onSendLocationClick = onSendLocationClick,
                             onCreatePollClick = onCreatePollClick,
-                            onSendStickerClick = onSendStickerClick,
                             onSwipeToReply = { targetEvent ->
                                 state.eventSink(MessagesEvent.HandleAction(TimelineItemAction.Reply, targetEvent))
                             },
@@ -348,6 +349,7 @@ fun MessagesView(
         bottomSheetContent = {
             MessagesViewComposerBottomSheetContents(
                 state = state,
+                onOpenStickerPicker = { showStickerPicker = true },
                 onLinkClick = { url, customTab -> onLinkClick(url, customTab) },
                 onRoomSuccessorClick = { roomId ->
                     state.timelineState.eventSink(TimelineEvent.NavigateToPredecessorOrSuccessorRoom(roomId = roomId))
@@ -390,6 +392,17 @@ fun MessagesView(
         },
         maxBottomSheetContentHeight = maxComposerHeightPx.toDp(),
     )
+
+    if (showStickerPicker) {
+        StickerPickerBottomSheet(
+            isVisible = showStickerPicker,
+            state = state.stickerPickerState,
+            onDismiss = {
+                showStickerPicker = false
+                state.stickerPickerState.eventSink(StickerPickerEvent.Dismiss)
+            },
+        )
+    }
 
     var endPollConfirmingEvent: TimelineItem.Event? by remember { mutableStateOf(null) }
 
@@ -468,6 +481,7 @@ fun MessagesView(
 @Composable
 internal fun RowScope.MessagesMenuActions(
     displayThreads: Boolean,
+    displaySearch: Boolean,
     roomCallState: RoomCallState,
     onJoinCallClick: (isAudioCall: Boolean) -> Unit,
     onThreadsListClick: () -> Unit,
@@ -481,16 +495,18 @@ internal fun RowScope.MessagesMenuActions(
         )
         Spacer(Modifier.width(8.dp))
     }
-    IconButton(
-        onClick = onSearchClick,
-        enabled = true,
-    ) {
-        Icon(
-            imageVector = CompoundIcons.Search(),
-            contentDescription = stringResource(CommonStrings.action_search),
-        )
+    if (displaySearch) {
+        IconButton(
+            onClick = onSearchClick,
+            enabled = true,
+        ) {
+            Icon(
+                imageVector = CompoundIcons.Search(),
+                contentDescription = stringResource(R.string.screen_room_message_search_title),
+            )
+        }
+        Spacer(Modifier.width(8.dp))
     }
-    Spacer(Modifier.width(8.dp))
     CallMenuItem(
         roomCallState = roomCallState,
         onJoinCallClick = onJoinCallClick,
@@ -526,7 +542,6 @@ private fun MessagesViewContent(
     onGalleryItemClick: ((TimelineItem.Event, Int) -> Unit),
     onSendLocationClick: () -> Unit,
     onCreatePollClick: () -> Unit,
-    onSendStickerClick: () -> Unit,
     onViewAllPinnedMessagesClick: () -> Unit,
     onJoinCallClick: (isAudioCall: Boolean) -> Unit,
     forceJumpToBottomVisibility: Boolean,
@@ -540,25 +555,12 @@ private fun MessagesViewContent(
             .navigationBarsPadding()
             .imePadding(),
     ) {
-        var showStickerPicker by rememberSaveable { mutableStateOf(false) }
         AttachmentsBottomSheet(
             state = state.composerState,
             onSendLocationClick = onSendLocationClick,
             onCreatePollClick = onCreatePollClick,
-            onSendStickerClick = { showStickerPicker = true },
             enableTextFormatting = state.enableTextFormatting,
         )
-
-        if (showStickerPicker) {
-            StickerPickerBottomSheet(
-                isVisible = showStickerPicker,
-                state = state.stickerPickerState,
-                onDismiss = {
-                    showStickerPicker = false
-                    state.stickerPickerState.eventSink(StickerPickerEvent.Dismiss)
-                },
-            )
-        }
 
         if (state.voiceMessageComposerState.showPermissionRationaleDialog) {
             VoiceMessagePermissionRationaleDialog(
@@ -642,6 +644,7 @@ private fun MessagesViewContent(
 @Composable
 private fun MessagesViewComposerBottomSheetContents(
     state: MessagesState,
+    onOpenStickerPicker: () -> Unit,
     onRoomSuccessorClick: (RoomId) -> Unit,
     onLinkClick: (String, Boolean) -> Unit,
 ) {
@@ -679,6 +682,7 @@ private fun MessagesViewComposerBottomSheetContents(
                     MessageComposerView(
                         state = state.composerState,
                         voiceMessageState = state.voiceMessageComposerState,
+                        onOpenStickerPicker = onOpenStickerPicker,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -738,7 +742,6 @@ internal fun MessagesViewPreview(@PreviewParameter(MessagesStatePreviewParam::cl
         onLinkClick = { _, _ -> },
         onSendLocationClick = {},
         onCreatePollClick = {},
-        onSendStickerClick = {},
         onJoinCallClick = {},
         onViewAllPinnedMessagesClick = { },
         forceJumpToBottomVisibility = true,
@@ -797,7 +800,6 @@ internal fun MessagesViewA11yPreview() = ElementPreview {
         onLinkClick = { _, _ -> },
         onSendLocationClick = {},
         onCreatePollClick = {},
-        onSendStickerClick = {},
         onJoinCallClick = {},
         onViewAllPinnedMessagesClick = {},
         onThreadsListClick = {},

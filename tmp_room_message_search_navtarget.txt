@@ -1,0 +1,2 @@
+@Parcelize
+data object RoomMessageSearch : NavTarget

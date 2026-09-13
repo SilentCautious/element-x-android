@@ -179,6 +179,7 @@ class MessagesPresenter(
                 .collectLatest { value = it.toImmutableList() }
         }
 
+        val isRoomMessageSearchEnabled by featureFlagService.isFeatureEnabledFlow(FeatureFlags.MessageSearch).collectAsState(initial = false)
         val canOpenThreadList by featureFlagService.isFeatureEnabledFlow(FeatureFlags.RoomThreadList).collectAsState(initial = false)
         val isCurrentlySharingLiveLocationInRoom by remember { liveLocationShareManager.isCurrentlySharing(room.roomId) }.collectAsState()
 
@@ -334,6 +335,7 @@ class MessagesPresenter(
                 // TODO calculate this properly based on the thread list and the read state of each thread
                 hasUnreadThreads = false,
             ),
+            isRoomMessageSearchEnabled = isRoomMessageSearchEnabled,
             showLiveLocationShareBanner = isCurrentlySharingLiveLocationInRoom && timelineState.timelineMode !is Timeline.Mode.Thread,
             eventSink = ::handleEvent,
         )

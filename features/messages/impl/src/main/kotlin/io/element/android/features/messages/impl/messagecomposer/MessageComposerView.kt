@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
 internal fun MessageComposerView(
     state: MessageComposerState,
     voiceMessageState: VoiceMessageComposerState,
+    onOpenStickerPicker: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
@@ -117,6 +118,8 @@ internal fun MessageComposerView(
         onError = ::onError,
         onTyping = ::onTyping,
         onSelectRichContent = ::sendUri,
+        onOpenStickerPicker = onOpenStickerPicker,
+        canSendSticker = state.canSendSticker,
     )
 
     AsyncActionView(

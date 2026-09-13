@@ -152,7 +152,7 @@ class MessageComposerPresenterTest : RobolectricTest() {
             assertThat(initialState.isInThreadTimeline).isFalse()
             assertThat(initialState.showAttachmentSourcePicker).isFalse()
             assertThat(initialState.canShareLocation).isTrue()
-            assertThat(initialState.canSendSticker).isFalse()
+            assertThat(initialState.canSendSticker).isTrue()
             assertThat(initialState.slashCommandAction).isEqualTo(AsyncAction.Uninitialized)
         }
     }

@@ -7,7 +7,6 @@
 
 package io.element.android.features.messages.impl.sticker
 
-import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -18,10 +17,9 @@ import androidx.compose.runtime.setValue
 import dev.zacsweers.metro.Inject
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
-import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.room.JoinedRoom
-import io.element.android.libraries.mediapickers.api.PickerProvider
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -30,75 +28,49 @@ import timber.log.Timber
 class StickerPickerPresenter(
     private val room: JoinedRoom,
     private val matrixClient: MatrixClient,
-    private val mediaPickerProvider: PickerProvider,
-    private val stickerMediaReader: StickerMediaReader,
-    private val coroutineDispatchers: CoroutineDispatchers,
+    private val stickerServerClient: StickerServerClient,
 ) : Presenter<StickerPickerState> {
     @Composable
     override fun present(): StickerPickerState {
         val coroutineScope = rememberCoroutineScope()
-        var pack by remember { mutableStateOf(UserStickerPack(displayName = null, stickers = persistentListOf())) }
+        var stickers by remember { mutableStateOf<ImmutableList<StickerImage>>(persistentListOf()) }
         var isLoading by remember { mutableStateOf(true) }
-        var isImporting by remember { mutableStateOf(false) }
         var error by remember { mutableStateOf<StickerPickerError?>(null) }
         var sendResult by remember { mutableStateOf<Boolean?>(null) }
 
-        suspend fun loadPack() {
+        suspend fun loadStickers() {
             isLoading = true
-            matrixClient.getAccountData(USER_EMOTES_EVENT_TYPE)
-                .onSuccess { raw ->
-                    pack = parseUserStickerPack(raw)
-                    isLoading = false
-                }
-                .onFailure {
-                    Timber.e(it, "Failed to load user sticker pack")
-                    pack = UserStickerPack(displayName = null, stickers = persistentListOf())
-                    isLoading = false
-                }
-        }
-
-        suspend fun importSticker(uri: Uri) {
-            isImporting = true
             error = null
-            val media = stickerMediaReader.read(uri)
-            if (media == null) {
-                isImporting = false
-                error = StickerPickerError.Import
-                return
-            }
-            val mimeType = media.info?.mimetype ?: "image/png"
-            matrixClient.uploadMedia(mimeType = mimeType, data = media.bytes)
-                .onSuccess { mxcUrl ->
-                    val updated = pack.addSticker(
-                        shortcode = media.filename ?: "sticker",
-                        url = mxcUrl,
-                        body = media.filename,
-                        info = media.info,
-                    )
-                    matrixClient.setAccountData(USER_EMOTES_EVENT_TYPE, serializeUserStickerPack(updated))
-                        .onSuccess {
-                            pack = updated
-                            isImporting = false
-                        }
-                        .onFailure {
-                            Timber.e(it, "Failed to persist user sticker pack")
-                            isImporting = false
-                            error = StickerPickerError.Import
-                        }
+            matrixClient.getAccountData(WIDGETS_EVENT_TYPE)
+                .onSuccess { raw ->
+                    val widgetUrl = extractStickerPickerWidgetUrl(raw)
+                    if (widgetUrl == null) {
+                        stickers = persistentListOf()
+                        isLoading = false
+                    } else {
+                        stickerServerClient.fetchStickerPacks(widgetUrl)
+                            .onSuccess {
+                                stickers = it
+                                isLoading = false
+                            }
+                            .onFailure {
+                                Timber.e(it, "Failed to load stickers from server")
+                                stickers = persistentListOf()
+                                error = StickerPickerError.Load
+                                isLoading = false
+                            }
+                    }
                 }
                 .onFailure {
-                    Timber.e(it, "Failed to upload sticker media")
-                    isImporting = false
-                    error = StickerPickerError.Import
+                    Timber.e(it, "Failed to load sticker picker widget")
+                    stickers = persistentListOf()
+                    error = StickerPickerError.Load
+                    isLoading = false
                 }
-        }
-
-        val galleryImagePicker = mediaPickerProvider.registerGalleryPicker { uri, _ ->
-            uri?.let { coroutineScope.launch { importSticker(it) } }
         }
 
         LaunchedEffect(Unit) {
-            loadPack()
+            loadStickers()
         }
 
         fun handleEvent(event: StickerPickerEvent) {
@@ -106,6 +78,9 @@ class StickerPickerPresenter(
                 StickerPickerEvent.Dismiss -> {
                     sendResult = null
                     error = null
+                }
+                StickerPickerEvent.Reload -> coroutineScope.launch {
+                    loadStickers()
                 }
                 is StickerPickerEvent.SelectSticker -> coroutineScope.launch {
                     room.sendSticker(
@@ -120,19 +95,11 @@ class StickerPickerPresenter(
                         error = StickerPickerError.Send
                     }
                 }
-                StickerPickerEvent.ImportSticker -> {
-                    error = null
-                    galleryImagePicker.launch()
-                }
-                is StickerPickerEvent.StickerPicked -> coroutineScope.launch {
-                    importSticker(event.uri)
-                }
             }
         }
 
         return StickerPickerState(
-            stickers = if (isLoading) AsyncData.Loading() else AsyncData.Success(pack.stickers),
-            isImporting = isImporting,
+            stickers = if (isLoading) AsyncData.Loading() else AsyncData.Success(stickers),
             error = error,
             sendResult = sendResult,
             eventSink = ::handleEvent,
@@ -140,6 +107,6 @@ class StickerPickerPresenter(
     }
 
     companion object {
-        private const val USER_EMOTES_EVENT_TYPE = "im.ponies.user_emotes"
+        internal const val WIDGETS_EVENT_TYPE = "m.widgets"
     }
 }

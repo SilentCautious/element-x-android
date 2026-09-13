@@ -14,7 +14,6 @@ import kotlinx.collections.immutable.ImmutableList
 @Immutable
 data class StickerPickerState(
     val stickers: AsyncData<ImmutableList<StickerImage>>,
-    val isImporting: Boolean,
     val error: StickerPickerError?,
     val sendResult: Boolean?,
     val eventSink: (StickerPickerEvent) -> Unit,
@@ -22,6 +21,6 @@ data class StickerPickerState(
 
 @Immutable
 enum class StickerPickerError {
-    Import,
+    Load,
     Send,
 }

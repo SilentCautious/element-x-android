@@ -44,7 +44,6 @@ internal fun AttachmentsBottomSheet(
     state: MessageComposerState,
     onSendLocationClick: () -> Unit,
     onCreatePollClick: () -> Unit,
-    onSendStickerClick: () -> Unit,
     enableTextFormatting: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -86,7 +85,6 @@ internal fun AttachmentsBottomSheet(
                 enableTextFormatting = enableTextFormatting,
                 onSendLocationClick = onSendLocationClick,
                 onCreatePollClick = onCreatePollClick,
-                onSendStickerClick = onSendStickerClick,
             )
         }
     }
@@ -97,7 +95,6 @@ private fun AttachmentSourcePickerMenu(
     state: MessageComposerState,
     onSendLocationClick: () -> Unit,
     onCreatePollClick: () -> Unit,
-    onSendStickerClick: () -> Unit,
     enableTextFormatting: Boolean,
 ) {
     Column(
@@ -144,16 +141,7 @@ private fun AttachmentSourcePickerMenu(
             leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Polls())),
             content = { Text(stringResource(R.string.screen_room_attachment_source_poll)) },
         )
-        if (state.canSendSticker) {
-            ListItem(
-                modifier = Modifier.clickable {
-                    state.eventSink(MessageComposerEvent.PickAttachmentSource.Sticker)
-                    onSendStickerClick()
-                },
-                leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Sticker())),
-                content = { Text(stringResource(R.string.screen_room_attachment_source_sticker)) },
-            )
-        }
+
         if (enableTextFormatting) {
             ListItem(
                 modifier = Modifier.clickable { state.eventSink(MessageComposerEvent.ToggleTextFormatting(enabled = true)) },
@@ -170,12 +158,10 @@ internal fun AttachmentsBottomSheetPreview() = ElementPreview(fillMaxSize = true
     AttachmentsBottomSheet(
         state = aMessageComposerState(
             canShareLocation = true,
-            canSendSticker = true,
             showAttachmentSourcePicker = true,
         ),
         onSendLocationClick = {},
         onCreatePollClick = {},
-        onSendStickerClick = {},
         enableTextFormatting = true,
     )
 }

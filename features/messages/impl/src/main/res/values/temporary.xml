@@ -9,9 +9,23 @@
 <resources>
     <string name="screen_room_attachment_source_sticker">Sticker</string>
     <string name="screen_sticker_picker_title">Stickers</string>
-    <string name="screen_sticker_picker_import">Import</string>
-    <string name="screen_sticker_picker_empty_title">No stickers yet</string>
-    <string name="screen_sticker_picker_empty_subtitle">Import images from your gallery to send them as stickers.</string>
+    <string name="screen_sticker_picker_empty_title">No stickers available</string>
+    <string name="screen_sticker_picker_empty_subtitle">Configure a sticker picker in Element Web, then retry.</string>
     <string name="a11y_sticker_picker_sticker">Send sticker %1$s</string>
-    <string name="a11y_sticker_picker_import">Import a sticker from the gallery</string>
+    <string name="screen_room_message_search_title">Search in room</string>
+    <string name="screen_room_message_search_search_hint">Search messages</string>
+    <string name="screen_room_message_search_start_title">Search this room\'s messages</string>
+    <string name="screen_room_message_search_start_subtitle">Only messages received while message search was enabled are indexed.</string>
+    <string name="screen_room_message_search_no_results_title">No results</string>
+    <string name="screen_room_message_search_no_results_subtitle">No indexed messages match this search. Try different keywords or remove some filters.</string>
+    <string name="screen_room_message_search_filter_members">Filter by member</string>
+    <string name="screen_room_message_search_filter_from">From</string>
+    <string name="screen_room_message_search_filter_date">Date</string>
+    <string name="screen_room_message_search_date_any">Any date</string>
+    <string name="screen_room_message_search_date_today">Today</string>
+    <string name="screen_room_message_search_date_last_7_days">Last 7 days</string>
+    <string name="screen_room_message_search_date_last_30_days">Last 30 days</string>
+    <string name="screen_room_message_search_date_custom">Custom range</string>
+    <string name="screen_room_message_search_load_more">Load more</string>
+    <string name="a11y_room_message_search_select_members">Filter results by member</string>
 </resources>
