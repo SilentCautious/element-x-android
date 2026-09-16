@@ -57,7 +57,7 @@ class RoomMessageSearchPresenterTest {
     }
 
     @Test
-    fun `present - debounced query is forwarded to the search`() = runTest {
+    fun `present - debounced fuzzy query is forwarded to the search`() = runTest {
         val messageSearch = FakeMessageSearch()
         val presenter = createPresenter(messageSearchService = FakeMessageSearchService(messageSearch))
         presenter.test {
@@ -66,10 +66,10 @@ class RoomMessageSearchPresenterTest {
             advanceTimeBy(100)
             state.queryState.edit { replace(0, length, "test") }
             advanceTimeBy(100)
-            assertThat(messageSearch.lastQuery).isNull()
+            assertThat(messageSearch.lastFuzzyQuery).isNull()
             advanceTimeBy(200)
-            assertThat(messageSearch.lastQuery).isEqualTo("test")
-            assertThat(messageSearch.setQueryCallCount).isEqualTo(1)
+            assertThat(messageSearch.lastFuzzyQuery).isEqualTo("test")
+            assertThat(messageSearch.setFuzzyQueryCallCount).isEqualTo(1)
             cancelAndIgnoreRemainingEvents()
         }
     }

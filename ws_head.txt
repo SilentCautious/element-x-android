@@ -1,0 +1,51 @@
+/*  
+ * Copyright (c) 2025 Element Creations Ltd.  
+ * Copyright 2023-2025 New Vector Ltd.  
+ *  
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.  
+ * Please see LICENSE files in the repository root for full details.  
+*/  
+  
+package io.element.android.libraries.pushproviders.ntfy.network  
+  
+import android.content.Context  
+import io.element.android.libraries.androidutils.json.JsonProvider  
+import io.element.android.libraries.core.log.logger.LoggerTag  
+import io.element.android.libraries.pushproviders.ntfy.model.NtfyConfigData  
+import io.element.android.libraries.pushproviders.ntfy.model.NtfyMessage  
+import kotlinx.coroutines.CoroutineScope  
+import kotlinx.coroutines.flow.MutableSharedFlow  
+import kotlinx.coroutines.flow.SharedFlow  
+import kotlinx.coroutines.launch  
+import kotlinx.coroutines.delay  
+import okhttp3.OkHttpClient  
+import okhttp3.Request  
+import okhttp3.Response  
+import okhttp3.WebSocket  
+import okhttp3.WebSocketListener  
+import okio.ByteString  
+import timber.log.Timber  
+import kotlin.time.Duration.Companion.seconds  
+import kotlin.time.Duration.Companion.minutes  
+  
+private val loggerTag = LoggerTag(\\" "NtfyWebSocketClient\)  
+  
+/**  
+ * ntfy WebSocket client for receiving push notifications  
+ */  
+class NtfyWebSocketClient(  
+    private val context: Context,  
+    private val okHttpClient: OkHttpClient,  
+    private val coroutineScope: CoroutineScope,  
+    private val config: NtfyConfigData,  
+    private val onMessage: (NtfyMessage) > Unit,  
+    private val onConnectionChange: (Boolean) > Unit,  
+) {  
+    private var webSocket: WebSocket? = null  
+    private var reconnectAttempts = 0  
+    private val maxReconnectAttempts = 10  
+    private val baseReconnectDelay = 5.seconds  
+    private var isShuttingDown = false  
+  
+    private val _messages = MutableSharedFlow<NtfyMessage>(replay = 1)  
+    val messages: SharedFlow<NtfyMessage> = _messages  

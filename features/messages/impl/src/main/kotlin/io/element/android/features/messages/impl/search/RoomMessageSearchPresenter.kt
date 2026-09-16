@@ -120,7 +120,7 @@ class RoomMessageSearchPresenter(
                 autoPaginationCount = 0
                 autoPaginationExhausted = false
                 launch {
-                    currentMessageSearch.setQuery(queryState.text.toString())
+                    currentMessageSearch.setFuzzyQuery(queryState.text.toString())
                         .onFailure { Timber.e(it, "Could not set query for message search") }
                 }
             } else {

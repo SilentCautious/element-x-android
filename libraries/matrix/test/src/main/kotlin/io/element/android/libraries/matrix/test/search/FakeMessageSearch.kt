@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 class FakeMessageSearch(
     private val setQueryResult: suspend (String) -> Result<Unit> = { Result.success(Unit) },
+    private val setFuzzyQueryResult: suspend (String) -> Result<Unit> = setQueryResult,
     private val paginateResult: suspend () -> Result<Unit> = { Result.success(Unit) },
     private val controllablePagination: Boolean = false,
 ) : MessageSearch {
@@ -31,6 +32,12 @@ class FakeMessageSearch(
     override val paginationState: StateFlow<MessageSearchPaginationState> = mutablePaginationState
 
     var lastQuery: String? = null
+        private set
+
+    var lastFuzzyQuery: String? = null
+        private set
+
+    var setFuzzyQueryCallCount = 0
         private set
 
     var setQueryCallCount = 0
@@ -53,6 +60,11 @@ class FakeMessageSearch(
         return setQueryResult(query)
     }
 
+    override suspend fun setFuzzyQuery(query: String): Result<Unit> {
+        lastFuzzyQuery = query
+        setFuzzyQueryCallCount++
+        return setFuzzyQueryResult(query)
+    }
     override suspend fun paginate(): Result<Unit> {
         paginateCallCount++
         if (!controllablePagination) {

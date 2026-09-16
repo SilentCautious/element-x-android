@@ -73,6 +73,90 @@ class RustMessageSearchTest {
     }
 
     @Test
+    fun `fuzzy query scans all indexed messages and matches partial text case-insensitively`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(dispatcher)
+        var queryReceived: String? = null
+        val service = FakeFfiSearchService(
+            setQueryLambda = {
+                queryReceived = it
+            },
+        )
+        val search = RustMessageSearch(inner = service, onClose = {}, scope = scope, dispatcher = dispatcher)
+
+        search.setFuzzyQuery("needle")
+        search.setFuzzyQuery("needle HAY")
+
+        assertThat(queryReceived).isEqualTo("*")
+        service.resultsListener!!.onUpdate(
+            listOf(
+                SearchServiceResultsUpdate.Append(
+                    listOf(
+                        aRustSearchServiceResult("\$1", body = "A NEEDLE in a haystack"),
+                        aRustSearchServiceResult("\$2", body = "needle only"),
+                        aRustSearchServiceResult("\$3", body = "no match"),
+                    )
+                )
+            )
+        )
+        advanceUntilIdle()
+
+        assertThat(search.results.value.map { it.eventId.value }).isEqualTo(listOf("\$1"))
+
+        scope.cancel()
+    }
+
+    @Test
+    fun `fuzzy query matches a CJK substring inside an unsegmented message`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(dispatcher)
+        val service = FakeFfiSearchService()
+        val search = RustMessageSearch(inner = service, onClose = {}, scope = scope, dispatcher = dispatcher)
+
+        search.setFuzzyQuery("天气")
+        service.resultsListener!!.onUpdate(
+            listOf(
+                SearchServiceResultsUpdate.Append(
+                    listOf(
+                        aRustSearchServiceResult("\$1", body = "今天的天气不错"),
+                        aRustSearchServiceResult("\$2", body = "今天下雨"),
+                    )
+                )
+            )
+        )
+        advanceUntilIdle()
+
+        assertThat(search.results.value.map { it.eventId.value }).isEqualTo(listOf("\$1"))
+
+        scope.cancel()
+    }
+
+    @Test
+    fun `fuzzy query still applies the room filter at the exposure boundary`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(dispatcher)
+        val service = FakeFfiSearchService()
+        val search = RustMessageSearch(inner = service, onClose = {}, scope = scope, dispatcher = dispatcher, roomId = A_ROOM_ID)
+
+        search.setFuzzyQuery("needle")
+        service.resultsListener!!.onUpdate(
+            listOf(
+                SearchServiceResultsUpdate.Append(
+                    listOf(
+                        aRustSearchServiceResult("\$1", roomId = A_ROOM_ID.value, body = "needle"),
+                        aRustSearchServiceResult("\$2", roomId = A_ROOM_ID_2.value, body = "needle"),
+                    )
+                )
+            )
+        )
+        advanceUntilIdle()
+
+        assertThat(search.results.value.map { it.eventId.value }).isEqualTo(listOf("\$1"))
+
+        scope.cancel()
+    }
+
+    @Test
     fun `paginate failure surfaces as Result failure without throwing`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val scope = CoroutineScope(dispatcher)

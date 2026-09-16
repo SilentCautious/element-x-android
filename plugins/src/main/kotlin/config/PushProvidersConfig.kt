@@ -11,9 +11,10 @@ package config
 data class PushProvidersConfig(
     val includeFirebase: Boolean,
     val includeUnifiedPush: Boolean,
+    val includeNtfy: Boolean,
 ) {
     init {
-        require(includeFirebase || includeUnifiedPush) {
+        require(includeFirebase || includeUnifiedPush || includeNtfy) {
             "At least one push provider must be included"
         }
     }

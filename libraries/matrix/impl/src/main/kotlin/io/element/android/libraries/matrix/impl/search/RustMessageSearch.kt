@@ -12,6 +12,13 @@ import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.search.MessageSearch
 import io.element.android.libraries.matrix.api.search.MessageSearchPaginationState
 import io.element.android.libraries.matrix.api.search.MessageSearchResult
+import io.element.android.libraries.matrix.api.timeline.item.event.EventContent
+import io.element.android.libraries.matrix.api.timeline.item.event.GalleryItemType
+import io.element.android.libraries.matrix.api.timeline.item.event.GalleryMessageType
+import io.element.android.libraries.matrix.api.timeline.item.event.MessageContent
+import io.element.android.libraries.matrix.api.timeline.item.event.MessageTypeWithAttachment
+import io.element.android.libraries.matrix.api.timeline.item.event.PollContent
+import io.element.android.libraries.matrix.api.timeline.item.event.StickerContent
 import io.element.android.libraries.matrix.impl.util.TaskHandleBag
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -23,9 +30,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.job
@@ -37,6 +44,9 @@ import org.matrix.rustcomponents.sdk.SearchServicePaginationStateListener
 import org.matrix.rustcomponents.sdk.SearchServiceResultsListener
 import org.matrix.rustcomponents.sdk.SearchServiceResultsUpdate
 import uniffi.matrix_sdk_ui.SearchServicePaginationState
+
+private const val ALL_DOCUMENTS_QUERY = "*"
+private val FUZZY_WHITESPACE_REGEX = Regex("\\s+")
 
 /**
  * Wraps the SDK's stateful [SearchServiceInterface] as a single search cursor.
@@ -56,6 +66,7 @@ class RustMessageSearch(
     private val roomId: RoomId? = null,
 ) : MessageSearch {
     private val innerResults = MutableStateFlow<List<MessageSearchResult>>(emptyList())
+    private val fuzzyQuery = MutableStateFlow<String?>(null)
     private val processor = MessageSearchResultsProcessor(
         results = innerResults,
         coroutineContext = dispatcher,
@@ -71,17 +82,18 @@ class RustMessageSearch(
      */
     private val updates = Channel<List<SearchServiceResultsUpdate>>(Channel.UNLIMITED)
 
-    override val results: StateFlow<ImmutableList<MessageSearchResult>> = innerResults
-        .map { results ->
+    override val results: StateFlow<ImmutableList<MessageSearchResult>> = combine(innerResults, fuzzyQuery) { results, query ->
+        results
+            .asSequence()
             // Room scoping is applied HERE, at the exposure boundary, and nowhere else.
             // [innerResults] must stay index-parallel to the SDK's own list, because the positional
             // diffs (Insert/Set/Remove/Truncate) address the SDK's indices. Filtering inside
             // MessageSearchResultsProcessor instead is precisely the element-x-ios desync bug.
-            when (roomId) {
-                null -> results.toImmutableList()
-                else -> results.filter { it.roomId == roomId }.toImmutableList()
-            }
-        }
+            .filter { result -> roomId == null || result.roomId == roomId }
+            .filter { result -> query == null || result.matchesFuzzyQuery(query) }
+            .toList()
+            .toImmutableList()
+    }
         .stateIn(scope, SharingStarted.Eagerly, persistentListOf())
 
     private val mutablePaginationState = MutableStateFlow(inner.paginationState().map())
@@ -107,7 +119,27 @@ class RustMessageSearch(
         }
     }
 
-    override suspend fun setQuery(query: String): Result<Unit> = withContext(dispatcher) {
+    override suspend fun setQuery(query: String): Result<Unit> {
+        fuzzyQuery.value = null
+        return setInnerQuery(query.escapeForTantivy())
+    }
+
+    override suspend fun setFuzzyQuery(query: String): Result<Unit> {
+        // The SDK does not expose Tantivy's regex or fuzzy query configuration through the FFI
+        // query string. Enumerate every indexed message and apply the substring predicate at the
+        // exposure boundary so CJK text and partial words can match without requiring the whole
+        // indexed token. [innerResults] remains unfiltered for positional SDK updates.
+        fuzzyQuery.value = query
+        return setInnerQuery(ALL_DOCUMENTS_QUERY)
+    }
+
+    override suspend fun paginate(): Result<Unit> = withContext(dispatcher) {
+        runCatchingExceptions {
+            inner.paginate()
+        }
+    }
+
+    private suspend fun setInnerQuery(query: String): Result<Unit> = withContext(dispatcher) {
         runCatchingExceptions {
             // Subscribe lazily, so a search screen that is opened but never used costs nothing.
             subscribeToResultsIfNeeded()
@@ -119,16 +151,7 @@ class RustMessageSearch(
             // a definitive "no results". Reset before handing the query over; the subscription
             // corrects this the moment the SDK reports its real state.
             mutablePaginationState.value = MessageSearchPaginationState.Idle(endReached = false)
-            // The SDK parses this with tantivy's strict query parser, where `:` and friends are
-            // syntax rather than text — a pasted URL fails the whole search. Escape so the query is
-            // searched literally. The caller keeps the raw string; only the SDK sees the escaped one.
-            inner.setQuery(query.escapeForTantivy())
-        }
-    }
-
-    override suspend fun paginate(): Result<Unit> = withContext(dispatcher) {
-        runCatchingExceptions {
-            inner.paginate()
+            inner.setQuery(query)
         }
     }
 
@@ -145,6 +168,67 @@ class RustMessageSearch(
             subscribedToResults = true
         }
     }
+}
+
+private fun MessageSearchResult.matchesFuzzyQuery(query: String): Boolean {
+    val terms = query.trim()
+        .split(FUZZY_WHITESPACE_REGEX)
+        .filter { it.isNotEmpty() }
+    if (terms.isEmpty()) return false
+
+    val searchableText = content.searchableText()
+    return terms.all { term -> searchableText.contains(term, ignoreCase = true) }
+}
+
+private fun EventContent.searchableText(): String = when (this) {
+    is MessageContent -> buildString {
+        append(body)
+        when (val messageType = type) {
+            is MessageTypeWithAttachment -> {
+                appendSearchableText(messageType.filename)
+                messageType.caption?.let(::appendSearchableText)
+            }
+            is GalleryMessageType -> {
+                appendSearchableText(messageType.body)
+                messageType.items.forEach { item ->
+                    when (item) {
+                        is GalleryItemType.Image -> {
+                            appendSearchableText(item.content.filename)
+                            item.content.caption?.let(::appendSearchableText)
+                        }
+                        is GalleryItemType.Audio -> {
+                            appendSearchableText(item.content.filename)
+                            item.content.caption?.let(::appendSearchableText)
+                        }
+                        is GalleryItemType.Video -> {
+                            appendSearchableText(item.content.filename)
+                            item.content.caption?.let(::appendSearchableText)
+                        }
+                        is GalleryItemType.File -> {
+                            appendSearchableText(item.content.filename)
+                            item.content.caption?.let(::appendSearchableText)
+                        }
+                        is GalleryItemType.Other -> appendSearchableText(item.body)
+                    }
+                }
+            }
+            else -> Unit
+        }
+    }
+    is StickerContent -> body.orEmpty()
+    is PollContent -> buildString {
+        append(question)
+        answers.forEach { answer ->
+            appendSearchableText(answer.text)
+        }
+    }
+    else -> ""
+}
+
+private fun StringBuilder.appendSearchableText(value: String) {
+    if (value.isEmpty()) return
+    if (isNotEmpty()) append(' ')
+    append(value)
 }
 
 internal fun SearchServicePaginationState.map(): MessageSearchPaginationState = when (this) {

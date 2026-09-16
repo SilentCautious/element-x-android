@@ -35,6 +35,13 @@ interface MessageSearch {
     suspend fun setQuery(query: String): Result<Unit>
 
     /**
+     * Set (or update) a fuzzy query. Unlike [setQuery], every whitespace-delimited term only needs
+     * to occur anywhere in the message text, case-insensitively. This is intended for room-level
+     * user search where partial words and unsegmented CJK sentences must match.
+     */
+    suspend fun setFuzzyQuery(query: String): Result<Unit>
+
+    /**
      * Load the next page of results. No-ops if a page is already loading or the end was reached.
      */
     suspend fun paginate(): Result<Unit>

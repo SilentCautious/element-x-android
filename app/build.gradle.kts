@@ -287,6 +287,9 @@ dependencies {
     if (ModulesConfig.pushProvidersConfig.includeUnifiedPush) {
         implementation(projects.libraries.pushproviders.unifiedpush)
     }
+    if (ModulesConfig.pushProvidersConfig.includeNtfy) {
+        implementation(projects.libraries.pushproviders.ntfy)
+    }
 
     // Google Play Services fused location backend. Discovered at runtime via ServiceLoader by the
     // location feature.
