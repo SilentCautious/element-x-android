@@ -9,12 +9,16 @@
 package io.element.android.libraries.pushproviders.ntfy.model
 
 import io.element.android.libraries.core.data.tryOrNull
+import io.element.android.libraries.core.log.logger.LoggerTag
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.pushproviders.api.PushData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import timber.log.Timber
+
+private val loggerTag = LoggerTag("NtfyPushData", LoggerTag.PushLoggerTag)
 
 /**
  * Body of the POST request the push gateway sends to the ntfy topic, which ntfy then stores verbatim
@@ -27,11 +31,15 @@ import kotlinx.serialization.json.Json
  *         "event_id": "$anEventId",
  *         "room_id": "!aRoomId",
  *         "counts": { "unread": 1 },
- *         "prio": "high",
- *         "devices": [ { "app_id": "...", "pushkey": "...", "data": { "cs": "aSecret" } } ]
+ *         "prio": "high"
  *     }
  * }
  * </pre>
+ *
+ * The payload also carries a `devices` array, which is intentionally not modelled: everything it
+ * holds is tied to the pusher registration rather than to the notification, and its `data` field is a
+ * nested `{"default_payload": {...}}` object whose shape is owned by the push gateway. Unknown keys
+ * are ignored by the parser, so leaving it out keeps this model from breaking when it changes.
  *
  * @see <a href="https://spec.matrix.org/latest/push-gateway-api/">Matrix Push Gateway API</a>
  */
@@ -46,21 +54,12 @@ data class NtfyNotification(
     @SerialName("room_id") val roomId: String? = null,
     @SerialName("counts") val counts: NtfyCounts? = null,
     @SerialName("prio") val prio: String? = null,
-    @SerialName("devices") val devices: List<NtfyDevice> = emptyList(),
 )
 
 @Serializable
 data class NtfyCounts(
     @SerialName("unread") val unread: Int? = null,
     @SerialName("missed_calls") val missedCalls: Int? = null,
-)
-
-@Serializable
-data class NtfyDevice(
-    @SerialName("app_id") val appId: String? = null,
-    @SerialName("pushkey") val pushKey: String? = null,
-    /** The data set when the pusher was registered, in particular the client secret under the `cs` key. */
-    @SerialName("data") val data: Map<String, String> = emptyMap(),
 )
 
 /**
@@ -77,7 +76,11 @@ data class NtfyDevice(
 fun NtfyMessage.toPushData(json: Json, clientSecret: String): PushData? {
     if (!isMessage) return null
     val body = message?.takeIf { it.isNotBlank() } ?: return null
-    val payload = tryOrNull { json.decodeFromString(NtfyNotificationPayload.serializer(), body) } ?: return null
+    val payload = tryOrNull(
+        onException = { Timber.tag(loggerTag.value).w(it, "Unable to decode the ntfy payload") }
+    ) {
+        json.decodeFromString(NtfyNotificationPayload.serializer(), body)
+    } ?: return null
     val notification = payload.notification ?: return null
     val safeEventId = notification.eventId?.let { EventId(it) } ?: return null
     val safeRoomId = notification.roomId?.let { RoomId(it) } ?: return null

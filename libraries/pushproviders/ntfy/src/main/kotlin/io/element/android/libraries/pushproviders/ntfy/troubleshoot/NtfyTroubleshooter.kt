@@ -15,6 +15,7 @@ import io.element.android.libraries.core.data.tryOrNull
 import io.element.android.libraries.core.log.logger.LoggerTag
 import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.pushproviders.ntfy.NtfyWebSocketManager
+import io.element.android.libraries.pushproviders.ntfy.model.NtfyConfigData
 import io.element.android.libraries.pushproviders.ntfy.store.NtfyStore
 import io.element.android.libraries.pushstore.api.clientsecret.PushClientSecret
 import kotlinx.coroutines.delay
@@ -50,20 +51,40 @@ class DefaultNtfyTroubleshooter(
         if (!isTopicReachable(config.publishUrl)) {
             return@withContext Result.failure(IllegalStateException("The ntfy server did not answer for the topic `${config.topic}`"))
         }
-        // Drop the current subscription before restarting it: it may have given up after too many failures.
-        ntfyWebSocketManager.stop(clientSecret)
-        ntfyWebSocketManager.start(clientSecret, config)
+        // Only rebuild the subscription when it is not live: restarting a healthy one would reset
+        // the diagnostics, which are exactly what is being looked at here.
+        if (!ntfyWebSocketManager.isConnected(clientSecret)) {
+            ntfyWebSocketManager.stop(clientSecret)
+            ntfyWebSocketManager.start(clientSecret, config)
+        }
         // The connection is asynchronous: wait for it so that the result reflects reality rather
         // than merely reporting that the subscription was asked for.
         repeat(CONNECTION_POLL_ATTEMPTS) {
             delay(CONNECTION_POLL_DELAY_MS)
             if (ntfyWebSocketManager.isConnected(clientSecret)) {
-                return@withContext Result.success(config.publishUrl)
+                return@withContext Result.success(reportTopicState(config, clientSecret))
             }
         }
         return@withContext Result.failure(
             IllegalStateException("The topic is reachable but the WebSocket is not connected to `${config.topic}`")
         )
+    }
+
+    /**
+     * Reports the topic and what the subscription has received, since the app logs do not reach
+     * logcat and this is the only place a failure can be observed.
+     */
+    private fun reportTopicState(config: NtfyConfigData, clientSecret: String): String {
+        return buildString {
+            append(config.publishUrl)
+            val diagnostics = ntfyWebSocketManager.diagnostics(clientSecret)
+            if (diagnostics != null) {
+                append("\nFrames received: ").append(diagnostics.receivedFrameCount)
+                diagnostics.lastFrameEvent?.let { append("\nLast event: ").append(it) }
+                diagnostics.lastHandlingOutcome?.let { append("\nLast handling: ").append(it) }
+                diagnostics.lastFailure?.let { append("\nLast failure: ").append(it) }
+            }
+        }
     }
 
     private fun isTopicReachable(publishUrl: String): Boolean {

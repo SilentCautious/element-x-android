@@ -11,9 +11,35 @@
       "type": "UNIVERSAL",
       "filters": [],
       "attributes": [],
-      "versionCode": 202609100,
-      "versionName": "26.09.10",
+      "versionCode": 202609120,
+      "versionName": "26.09.12",
       "outputFile": "app-gplay-universal-release.apk"
+    },
+    {
+      "type": "ONE_OF_MANY",
+      "filters": [
+        {
+          "filterType": "ABI",
+          "value": "armeabi-v7a"
+        }
+      ],
+      "attributes": [],
+      "versionCode": 202609121,
+      "versionName": "26.09.12",
+      "outputFile": "app-gplay-armeabi-v7a-release.apk"
+    },
+    {
+      "type": "ONE_OF_MANY",
+      "filters": [
+        {
+          "filterType": "ABI",
+          "value": "arm64-v8a"
+        }
+      ],
+      "attributes": [],
+      "versionCode": 202609122,
+      "versionName": "26.09.12",
+      "outputFile": "app-gplay-arm64-v8a-release.apk"
     },
     {
       "type": "ONE_OF_MANY",
@@ -24,8 +50,8 @@
         }
       ],
       "attributes": [],
-      "versionCode": 202609103,
-      "versionName": "26.09.10",
+      "versionCode": 202609123,
+      "versionName": "26.09.12",
       "outputFile": "app-gplay-x86-release.apk"
     },
     {
@@ -37,35 +63,9 @@
         }
       ],
       "attributes": [],
-      "versionCode": 202609104,
-      "versionName": "26.09.10",
+      "versionCode": 202609124,
+      "versionName": "26.09.12",
       "outputFile": "app-gplay-x86_64-release.apk"
-    },
-    {
-      "type": "ONE_OF_MANY",
-      "filters": [
-        {
-          "filterType": "ABI",
-          "value": "arm64-v8a"
-        }
-      ],
-      "attributes": [],
-      "versionCode": 202609102,
-      "versionName": "26.09.10",
-      "outputFile": "app-gplay-arm64-v8a-release.apk"
-    },
-    {
-      "type": "ONE_OF_MANY",
-      "filters": [
-        {
-          "filterType": "ABI",
-          "value": "armeabi-v7a"
-        }
-      ],
-      "attributes": [],
-      "versionCode": 202609101,
-      "versionName": "26.09.10",
-      "outputFile": "app-gplay-armeabi-v7a-release.apk"
     }
   ],
   "elementType": "File",
@@ -75,10 +75,10 @@
       "maxApi": 30,
       "baselineProfiles": [
         "baselineProfiles/1/app-gplay-universal-release.dm",
-        "baselineProfiles/1/app-gplay-x86-release.dm",
-        "baselineProfiles/1/app-gplay-x86_64-release.dm",
+        "baselineProfiles/1/app-gplay-armeabi-v7a-release.dm",
         "baselineProfiles/1/app-gplay-arm64-v8a-release.dm",
-        "baselineProfiles/1/app-gplay-armeabi-v7a-release.dm"
+        "baselineProfiles/1/app-gplay-x86-release.dm",
+        "baselineProfiles/1/app-gplay-x86_64-release.dm"
       ]
     },
     {
@@ -86,10 +86,10 @@
       "maxApi": 2147483647,
       "baselineProfiles": [
         "baselineProfiles/0/app-gplay-universal-release.dm",
-        "baselineProfiles/0/app-gplay-x86-release.dm",
-        "baselineProfiles/0/app-gplay-x86_64-release.dm",
+        "baselineProfiles/0/app-gplay-armeabi-v7a-release.dm",
         "baselineProfiles/0/app-gplay-arm64-v8a-release.dm",
-        "baselineProfiles/0/app-gplay-armeabi-v7a-release.dm"
+        "baselineProfiles/0/app-gplay-x86-release.dm",
+        "baselineProfiles/0/app-gplay-x86_64-release.dm"
       ]
     }
   ],

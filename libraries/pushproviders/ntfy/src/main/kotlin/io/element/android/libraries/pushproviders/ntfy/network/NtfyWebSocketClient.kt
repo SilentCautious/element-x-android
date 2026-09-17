@@ -26,6 +26,7 @@ import okhttp3.WebSocketListener
 import okio.ByteString
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -62,6 +63,13 @@ class NtfyWebSocketClient(
     private var reconnectAttempts: Int = 0
     private var isShuttingDown: Boolean = false
     private val connectionState = AtomicBoolean(false)
+    private val receivedFrameCount = AtomicInteger(0)
+
+    @Volatile
+    private var lastFrameEvent: String? = null
+
+    @Volatile
+    private var lastFailure: String? = null
 
     /**
      * Whether the subscription is currently established. Calling [connect] only starts the
@@ -70,6 +78,20 @@ class NtfyWebSocketClient(
      */
     val isConnected: Boolean
         get() = connectionState.get()
+
+    /**
+     * Snapshot of what this subscription has seen, meant to be shown by the troubleshooting screen.
+     *
+     * The app logs are routed to the Rust tracing subsystem rather than to logcat, so a failure has
+     * to be readable from the UI itself to be diagnosable.
+     */
+    val diagnostics: NtfySubscriptionDiagnostics
+        get() = NtfySubscriptionDiagnostics(
+            isConnected = connectionState.get(),
+            receivedFrameCount = receivedFrameCount.get(),
+            lastFrameEvent = lastFrameEvent,
+            lastFailure = lastFailure,
+        )
 
     /** Opens the connection, or does nothing when it is already opened. */
     fun connect() {
@@ -124,11 +146,14 @@ class NtfyWebSocketClient(
     }
 
     private fun handleTextMessage(text: String) {
+        // Counted before parsing, so that a frame which cannot be decoded is still visible as received.
+        receivedFrameCount.incrementAndGet()
         val message = tryOrNull(
             onException = { Timber.tag(loggerTag.value).w(it, "Unable to parse the incoming payload") }
         ) {
             jsonProvider().decodeFromString(NtfyMessage.serializer(), text)
         } ?: return
+        lastFrameEvent = message.event
         Timber.tag(loggerTag.value).d("Received a `${message.event}` frame of ${text.length} characters")
         if (message.isMessage) {
             onMessage(message)
@@ -171,6 +196,7 @@ class NtfyWebSocketClient(
         }
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+            lastFailure = "${t.javaClass.simpleName}: ${t.message} (httpCode=${response?.code})"
             Timber.tag(loggerTag.value).w(t, "WebSocket failure, httpCode=${response?.code}")
             this@NtfyWebSocketClient.onSocketDown()
         }
@@ -184,3 +210,21 @@ class NtfyWebSocketClient(
         private const val MAX_BACKOFF_EXPONENT = 8
     }
 }
+
+/**
+ * What a subscription has seen so far, exposed to the troubleshooting screen.
+ *
+ * @property isConnected whether the WebSocket is currently established.
+ * @property receivedFrameCount number of frames received, counted before parsing.
+ * @property lastFrameEvent value of the `event` field of the last decoded frame.
+ * @property lastFailure description of the last connection failure, if any.
+ * @property lastHandlingOutcome result of the last attempt at turning a frame into a push, filled by
+ * the manager since it is the one doing the conversion.
+ */
+data class NtfySubscriptionDiagnostics(
+    val isConnected: Boolean,
+    val receivedFrameCount: Int,
+    val lastFrameEvent: String?,
+    val lastFailure: String?,
+    val lastHandlingOutcome: String? = null,
+)

@@ -18,6 +18,7 @@ import io.element.android.libraries.pushproviders.api.PushHandler
 import io.element.android.libraries.pushproviders.ntfy.model.NtfyConfigData
 import io.element.android.libraries.pushproviders.ntfy.model.NtfyMessage
 import io.element.android.libraries.pushproviders.ntfy.model.toPushData
+import io.element.android.libraries.pushproviders.ntfy.network.NtfySubscriptionDiagnostics
 import io.element.android.libraries.pushproviders.ntfy.network.NtfyWebSocketClient
 import io.element.android.libraries.pushproviders.ntfy.store.NtfyStore
 import kotlinx.coroutines.CoroutineScope
@@ -55,6 +56,9 @@ interface NtfyWebSocketManager {
 
     /** Whether at least one session is still subscribed, to know when the keep alive service can be stopped. */
     fun hasSubscriptions(): Boolean
+
+    /** What the subscription of the session has seen so far, or `null` when it is not subscribed. */
+    fun diagnostics(clientSecret: String): NtfySubscriptionDiagnostics?
 }
 
 @ContributesBinding(AppScope::class)
@@ -67,6 +71,13 @@ class DefaultNtfyWebSocketManager(
     @AppCoroutineScope private val appCoroutineScope: CoroutineScope,
 ) : NtfyWebSocketManager {
     private val clients = ConcurrentHashMap<String, NtfyWebSocketClient>()
+
+    /**
+     * Result of the last frame handled per session. Kept here rather than in the client because the
+     * conversion and the hand over to the push pipeline happen here, and it has to be visible from
+     * the troubleshooting screen since the app logs do not reach logcat.
+     */
+    private val lastHandlingOutcomes = ConcurrentHashMap<String, String>()
 
     override fun start(clientSecret: String, config: NtfyConfigData) {
         if (clients.containsKey(clientSecret)) {
@@ -101,6 +112,11 @@ class DefaultNtfyWebSocketManager(
 
     override fun hasSubscriptions(): Boolean = clients.isNotEmpty()
 
+    override fun diagnostics(clientSecret: String): NtfySubscriptionDiagnostics? {
+        val client = clients[clientSecret] ?: return null
+        return client.diagnostics.copy(lastHandlingOutcome = lastHandlingOutcomes[clientSecret])
+    }
+
     private suspend fun handleMessage(clientSecret: String, message: NtfyMessage) {
         val providerInfo = "${NtfyConfig.NAME} - $clientSecret"
         Timber.tag(loggerTag.value).d("Received a `${message.event}` event on the topic `${message.topic}`")
@@ -108,6 +124,7 @@ class DefaultNtfyWebSocketManager(
             // The session comes from the subscription this message arrived on, not from the payload.
             val pushData = message.toPushData(json = jsonProvider(), clientSecret = clientSecret)
             if (pushData == null) {
+                lastHandlingOutcomes[clientSecret] = "decode failed (message field could not be turned into a push)"
                 Timber.tag(loggerTag.value).w("Unable to decode the payload of the message `${message.id}`")
                 pushHandler.handleInvalid(
                     providerInfo = providerInfo,
@@ -119,6 +136,7 @@ class DefaultNtfyWebSocketManager(
                 pushData = pushData,
                 providerInfo = providerInfo,
             )
+            lastHandlingOutcomes[clientSecret] = "handled: $handled (event ${pushData.eventId.value})"
             Timber.tag(loggerTag.value).d("Message `${message.id}` handled: $handled")
             if (handled) {
                 // Only move the cursor forward once the push has been accepted, so that a failure
@@ -127,6 +145,7 @@ class DefaultNtfyWebSocketManager(
             }
         } catch (throwable: Exception) {
             // Without this the coroutine would swallow the failure and the message would be lost silently.
+            lastHandlingOutcomes[clientSecret] = "threw ${throwable.javaClass.simpleName}: ${throwable.message}"
             Timber.tag(loggerTag.value).e(throwable, "Unable to handle the message `${message.id}`")
         }
     }
