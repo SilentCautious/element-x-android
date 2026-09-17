@@ -6,10 +6,21 @@
   ~ Please see LICENSE files in the repository root for full details.
   -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!--
-    The provider subscribes to the ntfy topic with a WebSocket hosted by the app process.
-    Keeping that connection alive in the background will need a foreground service, which is
-    deliberately not declared yet.
-    -->
+    <!-- The provider subscribes to the ntfy topic with a WebSocket hosted by the app process. -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+    Required to run the service keeping the connection alive. `remoteMessaging` is the type fitting a
+    long-lived connection waiting for incoming messages; it is only known from Android 14 onwards and
+    older versions simply ignore the permission.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
+
+    <application>
+        <service
+            android:name=".keepalive.NtfyKeepAliveService"
+            android:exported="false"
+            android:foregroundServiceType="remoteMessaging" />
+    </application>
 </manifest>

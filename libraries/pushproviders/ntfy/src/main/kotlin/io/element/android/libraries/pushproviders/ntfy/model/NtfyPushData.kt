@@ -67,20 +67,20 @@ data class NtfyDevice(
  * Decodes the notification carried by a ntfy envelope and converts it into the [PushData] consumed
  * by the push pipeline.
  *
- * The client secret is read from `notification.devices[].data.cs`, which the homeserver echoes from
- * the pusher registration, see `DefaultPusherSubscriber.createDefaultPayload`.
- *
  * @param json the json decoder to use, since ntfy stores the body as a string in the `message` field.
+ * @param clientSecret identifies the session the notification belongs to. It is provided by the
+ * subscription itself rather than read from `notification.devices[].data.cs`: that payload is only
+ * filled with a placeholder secret when the "test push" of the troubleshooting screen is used, and
+ * whether a gateway relays `devices` at all is not guaranteed.
  * @return `null` when the envelope is not a notification, or does not carry what the pipeline needs.
  */
-fun NtfyMessage.toPushData(json: Json): PushData? {
+fun NtfyMessage.toPushData(json: Json, clientSecret: String): PushData? {
     if (!isMessage) return null
     val body = message?.takeIf { it.isNotBlank() } ?: return null
     val payload = tryOrNull { json.decodeFromString(NtfyNotificationPayload.serializer(), body) } ?: return null
     val notification = payload.notification ?: return null
     val safeEventId = notification.eventId?.let { EventId(it) } ?: return null
     val safeRoomId = notification.roomId?.let { RoomId(it) } ?: return null
-    val clientSecret = notification.devices.firstNotNullOfOrNull { it.data[CLIENT_SECRET_KEY] } ?: return null
     return PushData(
         eventId = safeEventId,
         roomId = safeRoomId,
@@ -88,6 +88,3 @@ fun NtfyMessage.toPushData(json: Json): PushData? {
         clientSecret = clientSecret,
     )
 }
-
-/** Key of the client secret in the pusher data, see `DefaultPusherSubscriber`. */
-private const val CLIENT_SECRET_KEY = "cs"

@@ -14,6 +14,7 @@ import io.element.android.libraries.core.log.logger.LoggerTag
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.pushproviders.api.PusherSubscriber
 import io.element.android.libraries.pushproviders.ntfy.NtfyWebSocketManager
+import io.element.android.libraries.pushproviders.ntfy.keepalive.NtfyKeepAliveServiceManager
 import io.element.android.libraries.pushproviders.ntfy.model.NtfyConfigData
 import io.element.android.libraries.pushproviders.ntfy.store.NtfyStore
 import timber.log.Timber
@@ -36,6 +37,7 @@ class DefaultRegisterNtfyUseCase(
     private val ntfyStore: NtfyStore,
     private val pusherSubscriber: PusherSubscriber,
     private val ntfyWebSocketManager: NtfyWebSocketManager,
+    private val ntfyKeepAliveServiceManager: NtfyKeepAliveServiceManager,
 ) : RegisterNtfyUseCase {
     override suspend fun execute(matrixClient: MatrixClient, clientSecret: String): Result<Unit> {
         val config = ntfyStore.getConfig(clientSecret) ?: NtfyConfigData(topic = generateTopic())
@@ -48,6 +50,8 @@ class DefaultRegisterNtfyUseCase(
             .onSuccess {
                 // Subscribe right away: ntfy rejects a push key whose topic never had a subscriber.
                 ntfyWebSocketManager.start(clientSecret, config)
+                // Without a foreground service the socket dies as soon as the app goes to the background.
+                ntfyKeepAliveServiceManager.start()
             }
             .onFailure {
                 Timber.tag(loggerTag.value).e(it, "Unable to register the pusher")

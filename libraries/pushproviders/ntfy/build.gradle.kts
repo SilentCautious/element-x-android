@@ -22,11 +22,16 @@ setupDependencyInjection()
 dependencies {
     implementation(projects.libraries.androidutils)
     implementation(projects.libraries.core)
+    implementation(projects.libraries.designsystem)
     implementation(projects.libraries.di)
     implementation(projects.libraries.matrix.api)
     implementation(projects.libraries.pushproviders.api)
     implementation(projects.libraries.pushstore.api)
     implementation(projects.libraries.troubleshoot.api)
+    implementation(projects.services.toolbox.api)
+
+    // Foreground service and its persistent notification.
+    implementation(libs.androidx.core)
 
     // WebSocket used to subscribe to the ntfy topic.
     implementation(platform(libs.network.okhttp.bom))

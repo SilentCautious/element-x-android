@@ -14,6 +14,7 @@ import io.element.android.libraries.core.log.logger.LoggerTag
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.pushproviders.api.PusherSubscriber
 import io.element.android.libraries.pushproviders.ntfy.NtfyWebSocketManager
+import io.element.android.libraries.pushproviders.ntfy.keepalive.NtfyKeepAliveServiceManager
 import io.element.android.libraries.pushproviders.ntfy.store.NtfyStore
 import timber.log.Timber
 
@@ -32,6 +33,7 @@ class DefaultUnregisterNtfyUseCase(
     private val ntfyStore: NtfyStore,
     private val pusherSubscriber: PusherSubscriber,
     private val ntfyWebSocketManager: NtfyWebSocketManager,
+    private val ntfyKeepAliveServiceManager: NtfyKeepAliveServiceManager,
 ) : UnregisterNtfyUseCase {
     override suspend fun unregister(matrixClient: MatrixClient, clientSecret: String): Result<Unit> {
         val config = ntfyStore.getConfig(clientSecret)
@@ -54,5 +56,9 @@ class DefaultUnregisterNtfyUseCase(
     override fun cleanup(clientSecret: String) {
         ntfyWebSocketManager.stop(clientSecret)
         ntfyStore.clear(clientSecret)
+        // The service keeps the process alive for every session, so only release it with the last one.
+        if (!ntfyWebSocketManager.hasSubscriptions()) {
+            ntfyKeepAliveServiceManager.stop()
+        }
     }
 }

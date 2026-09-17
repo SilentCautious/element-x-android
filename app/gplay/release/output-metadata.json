@@ -11,22 +11,9 @@
       "type": "UNIVERSAL",
       "filters": [],
       "attributes": [],
-      "versionCode": 202609050,
-      "versionName": "26.09.5",
+      "versionCode": 202609090,
+      "versionName": "26.09.9",
       "outputFile": "app-gplay-universal-release.apk"
-    },
-    {
-      "type": "ONE_OF_MANY",
-      "filters": [
-        {
-          "filterType": "ABI",
-          "value": "armeabi-v7a"
-        }
-      ],
-      "attributes": [],
-      "versionCode": 202609051,
-      "versionName": "26.09.5",
-      "outputFile": "app-gplay-armeabi-v7a-release.apk"
     },
     {
       "type": "ONE_OF_MANY",
@@ -37,9 +24,22 @@
         }
       ],
       "attributes": [],
-      "versionCode": 202609052,
-      "versionName": "26.09.5",
+      "versionCode": 202609092,
+      "versionName": "26.09.9",
       "outputFile": "app-gplay-arm64-v8a-release.apk"
+    },
+    {
+      "type": "ONE_OF_MANY",
+      "filters": [
+        {
+          "filterType": "ABI",
+          "value": "armeabi-v7a"
+        }
+      ],
+      "attributes": [],
+      "versionCode": 202609091,
+      "versionName": "26.09.9",
+      "outputFile": "app-gplay-armeabi-v7a-release.apk"
     },
     {
       "type": "ONE_OF_MANY",
@@ -50,8 +50,8 @@
         }
       ],
       "attributes": [],
-      "versionCode": 202609053,
-      "versionName": "26.09.5",
+      "versionCode": 202609093,
+      "versionName": "26.09.9",
       "outputFile": "app-gplay-x86-release.apk"
     },
     {
@@ -63,8 +63,8 @@
         }
       ],
       "attributes": [],
-      "versionCode": 202609054,
-      "versionName": "26.09.5",
+      "versionCode": 202609094,
+      "versionName": "26.09.9",
       "outputFile": "app-gplay-x86_64-release.apk"
     }
   ],
@@ -75,8 +75,8 @@
       "maxApi": 30,
       "baselineProfiles": [
         "baselineProfiles/1/app-gplay-universal-release.dm",
-        "baselineProfiles/1/app-gplay-armeabi-v7a-release.dm",
         "baselineProfiles/1/app-gplay-arm64-v8a-release.dm",
+        "baselineProfiles/1/app-gplay-armeabi-v7a-release.dm",
         "baselineProfiles/1/app-gplay-x86-release.dm",
         "baselineProfiles/1/app-gplay-x86_64-release.dm"
       ]
@@ -86,8 +86,8 @@
       "maxApi": 2147483647,
       "baselineProfiles": [
         "baselineProfiles/0/app-gplay-universal-release.dm",
-        "baselineProfiles/0/app-gplay-armeabi-v7a-release.dm",
         "baselineProfiles/0/app-gplay-arm64-v8a-release.dm",
+        "baselineProfiles/0/app-gplay-armeabi-v7a-release.dm",
         "baselineProfiles/0/app-gplay-x86-release.dm",
         "baselineProfiles/0/app-gplay-x86_64-release.dm"
       ]

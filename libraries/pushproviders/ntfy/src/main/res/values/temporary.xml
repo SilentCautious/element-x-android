@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Copyright (c) 2026 Element Creations Ltd.
+  ~
+  ~ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+  ~ Please see LICENSE files in the repository root for full details.
+  -->
+<resources>
+    <!-- Name of the channel used by the notification keeping the ntfy connection alive. -->
+    <string name="common_ntfy_keep_alive_channel_name">Keeping the connection</string>
+    <!-- Title of the persistent notification shown while the ntfy connection is kept alive. -->
+    <string name="common_ntfy_keep_alive_notification_title">Keeping the connection</string>
+    <!-- Content of the persistent notification shown while the ntfy connection is kept alive. -->
+    <string name="common_ntfy_keep_alive_notification_content">Staying connected to receive messages.</string>
+</resources>

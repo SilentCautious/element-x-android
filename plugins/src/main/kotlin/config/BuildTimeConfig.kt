@@ -33,7 +33,7 @@ object BuildTimeConfig {
     const val PUSH_CONFIG_INCLUDE_UNIFIED_PUSH: Boolean = true
     // Opt-in: the ntfy provider subscribes to a topic from the app process and cannot wake it up,
     // so it is not shipped by default yet.
-    const val PUSH_CONFIG_INCLUDE_NTFY: Boolean = false
+    const val PUSH_CONFIG_INCLUDE_NTFY: Boolean = true
     val PUSHER_APP_ID_RELEASE: String? = null
     val PUSHER_APP_ID_DEBUG: String? = null
     val PUSHER_APP_ID_NIGHTLY: String? = null

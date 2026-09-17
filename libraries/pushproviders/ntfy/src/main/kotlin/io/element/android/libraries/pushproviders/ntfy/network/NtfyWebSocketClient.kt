@@ -25,6 +25,7 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
 import timber.log.Timber
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -60,6 +61,15 @@ class NtfyWebSocketClient(
     private var reconnectJob: Job? = null
     private var reconnectAttempts: Int = 0
     private var isShuttingDown: Boolean = false
+    private val connectionState = AtomicBoolean(false)
+
+    /**
+     * Whether the subscription is currently established. Calling [connect] only starts the
+     * connection: this is the only way to know it actually succeeded, and it is exposed so that the
+     * troubleshooting screen can tell a live subscription from one that keeps failing.
+     */
+    val isConnected: Boolean
+        get() = connectionState.get()
 
     /** Opens the connection, or does nothing when it is already opened. */
     fun connect() {
@@ -72,6 +82,7 @@ class NtfyWebSocketClient(
     /** Closes the connection and cancels any pending reconnection. */
     fun disconnect() {
         isShuttingDown = true
+        connectionState.set(false)
         reconnectJob?.cancel()
         reconnectJob = null
         webSocket?.close(NORMAL_CLOSURE_STATUS, null)
@@ -127,6 +138,7 @@ class NtfyWebSocketClient(
 
     private fun onSocketDown() {
         webSocket = null
+        connectionState.set(false)
         onConnectionChange(false)
         scheduleReconnect()
     }
@@ -134,6 +146,7 @@ class NtfyWebSocketClient(
     private val listener = object : WebSocketListener() {
         override fun onOpen(webSocket: WebSocket, response: Response) {
             Timber.tag(loggerTag.value).d("WebSocket opened")
+            connectionState.set(true)
             reconnectAttempts = 0
             onConnectionChange(true)
         }

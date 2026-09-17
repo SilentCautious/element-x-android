@@ -17,6 +17,7 @@ import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.pushproviders.ntfy.NtfyWebSocketManager
 import io.element.android.libraries.pushproviders.ntfy.store.NtfyStore
 import io.element.android.libraries.pushstore.api.clientsecret.PushClientSecret
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -52,7 +53,17 @@ class DefaultNtfyTroubleshooter(
         // Drop the current subscription before restarting it: it may have given up after too many failures.
         ntfyWebSocketManager.stop(clientSecret)
         ntfyWebSocketManager.start(clientSecret, config)
-        Result.success(config.publishUrl)
+        // The connection is asynchronous: wait for it so that the result reflects reality rather
+        // than merely reporting that the subscription was asked for.
+        repeat(CONNECTION_POLL_ATTEMPTS) {
+            delay(CONNECTION_POLL_DELAY_MS)
+            if (ntfyWebSocketManager.isConnected(clientSecret)) {
+                return@withContext Result.success(config.publishUrl)
+            }
+        }
+        return@withContext Result.failure(
+            IllegalStateException("The topic is reachable but the WebSocket is not connected to `${config.topic}`")
+        )
     }
 
     private fun isTopicReachable(publishUrl: String): Boolean {
@@ -64,5 +75,10 @@ class DefaultNtfyTroubleshooter(
         ) {
             okHttpClient.newCall(request).execute().use { it.isSuccessful }
         } ?: false
+    }
+
+    private companion object {
+        private const val CONNECTION_POLL_DELAY_MS = 500L
+        private const val CONNECTION_POLL_ATTEMPTS = 10
     }
 }

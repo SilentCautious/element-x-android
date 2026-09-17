@@ -44,6 +44,17 @@ interface NtfyWebSocketManager {
 
     /** Cancels every subscription, to be used when the user signs out. */
     fun stopAll()
+
+    /**
+     * Whether the subscription of the session is currently established.
+     *
+     * [start] only begins the connection, which happens asynchronously and may never succeed: this
+     * is how the troubleshooting screen tells a live subscription from one that keeps failing.
+     */
+    fun isConnected(clientSecret: String): Boolean
+
+    /** Whether at least one session is still subscribed, to know when the keep alive service can be stopped. */
+    fun hasSubscriptions(): Boolean
 }
 
 @ContributesBinding(AppScope::class)
@@ -86,9 +97,14 @@ class DefaultNtfyWebSocketManager(
         clients.clear()
     }
 
+    override fun isConnected(clientSecret: String): Boolean = clients[clientSecret]?.isConnected ?: false
+
+    override fun hasSubscriptions(): Boolean = clients.isNotEmpty()
+
     private suspend fun handleMessage(clientSecret: String, message: NtfyMessage) {
         val providerInfo = "${NtfyConfig.NAME} - $clientSecret"
-        val pushData = message.toPushData(jsonProvider())
+        // The session comes from the subscription this message arrived on, not from the payload.
+        val pushData = message.toPushData(json = jsonProvider(), clientSecret = clientSecret)
         if (pushData == null) {
             Timber.tag(loggerTag.value).w("Invalid data received from ntfy")
             pushHandler.handleInvalid(
