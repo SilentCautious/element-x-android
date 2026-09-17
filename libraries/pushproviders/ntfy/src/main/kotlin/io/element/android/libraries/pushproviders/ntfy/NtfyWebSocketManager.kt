@@ -103,24 +103,31 @@ class DefaultNtfyWebSocketManager(
 
     private suspend fun handleMessage(clientSecret: String, message: NtfyMessage) {
         val providerInfo = "${NtfyConfig.NAME} - $clientSecret"
-        // The session comes from the subscription this message arrived on, not from the payload.
-        val pushData = message.toPushData(json = jsonProvider(), clientSecret = clientSecret)
-        if (pushData == null) {
-            Timber.tag(loggerTag.value).w("Invalid data received from ntfy")
-            pushHandler.handleInvalid(
+        Timber.tag(loggerTag.value).d("Received a `${message.event}` event on the topic `${message.topic}`")
+        try {
+            // The session comes from the subscription this message arrived on, not from the payload.
+            val pushData = message.toPushData(json = jsonProvider(), clientSecret = clientSecret)
+            if (pushData == null) {
+                Timber.tag(loggerTag.value).w("Unable to decode the payload of the message `${message.id}`")
+                pushHandler.handleInvalid(
+                    providerInfo = providerInfo,
+                    data = message.message.orEmpty(),
+                )
+                return
+            }
+            val handled = pushHandler.handle(
+                pushData = pushData,
                 providerInfo = providerInfo,
-                data = message.message.orEmpty(),
             )
-            return
-        }
-        val handled = pushHandler.handle(
-            pushData = pushData,
-            providerInfo = providerInfo,
-        )
-        if (handled) {
-            // Only move the cursor forward once the push has been accepted, so that a failure
-            // does not silently skip the notification on the next reconnection.
-            ntfyStore.storeLastMessageId(clientSecret, message.id)
+            Timber.tag(loggerTag.value).d("Message `${message.id}` handled: $handled")
+            if (handled) {
+                // Only move the cursor forward once the push has been accepted, so that a failure
+                // does not silently skip the notification on the next reconnection.
+                ntfyStore.storeLastMessageId(clientSecret, message.id)
+            }
+        } catch (throwable: Exception) {
+            // Without this the coroutine would swallow the failure and the message would be lost silently.
+            Timber.tag(loggerTag.value).e(throwable, "Unable to handle the message `${message.id}`")
         }
     }
 }

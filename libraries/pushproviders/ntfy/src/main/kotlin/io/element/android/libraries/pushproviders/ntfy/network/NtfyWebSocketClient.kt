@@ -129,6 +129,7 @@ class NtfyWebSocketClient(
         ) {
             jsonProvider().decodeFromString(NtfyMessage.serializer(), text)
         } ?: return
+        Timber.tag(loggerTag.value).d("Received a `${message.event}` frame of ${text.length} characters")
         if (message.isMessage) {
             onMessage(message)
         } else {
